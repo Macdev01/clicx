@@ -1,0 +1,70 @@
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- USERS
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    nickname VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    balance DECIMAL(10,2) DEFAULT 0.00,
+    avatar_url VARCHAR(500)
+);
+
+-- ADMINS
+CREATE TABLE admins (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    nickname VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    balance DECIMAL(10,2) DEFAULT 0.00,
+    avatar_url VARCHAR(500),
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- MODEL PROFILES
+CREATE TABLE model_profiles (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    bio TEXT,
+    banner VARCHAR(500)
+);
+
+-- POSTS
+CREATE TABLE posts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    text TEXT,
+    is_premium BOOLEAN DEFAULT false,
+    published_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    likes_count INTEGER DEFAULT 0,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    model_id INTEGER REFERENCES model_profiles(id) ON DELETE SET NULL
+);
+
+CREATE TABLE media (
+    id SERIAL PRIMARY KEY,
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    url TEXT NOT NULL,
+    cover TEXT,
+    duration INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- COMMENTS
+CREATE TABLE comments (
+    id SERIAL PRIMARY KEY,
+    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ORDERS
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    summ INTEGER NOT NULL
+);

@@ -1,0 +1,63 @@
+package routes
+
+import (
+	"mvp-go-backend/handlers"
+
+	"github.com/gin-gonic/gin"
+)
+
+func InitRoutes(r *gin.Engine) {
+	// Users
+	users := r.Group("/users")
+	{
+		users.GET("", handlers.GetUsers)
+		users.GET("/:id", handlers.GetUserByID)
+		users.POST("", handlers.CreateUser)
+		users.PUT("/:id", handlers.UpdateUser)
+		users.DELETE("/:id", handlers.DeleteUser)
+	}
+
+	// Posts
+	posts := r.Group("/posts")
+	{
+		posts.GET("", handlers.GetPosts)
+		posts.GET("/:id", handlers.GetPostByID)
+		posts.POST("", handlers.CreatePost)
+		posts.PUT("/:id", handlers.UpdatePost)
+		posts.DELETE("/:id", handlers.DeletePost)
+	}
+
+	// Orders
+	orders := r.Group("/orders")
+	{
+		orders.GET("", handlers.GetOrders)
+		orders.GET("/:id", handlers.GetOrderByID)
+		orders.POST("", handlers.CreateOrder)
+		orders.PUT("/:id", handlers.UpdateOrder)
+		orders.DELETE("/:id", handlers.DeleteOrder)
+	}
+
+	// Admins
+	admins := r.Group("/admins")
+	{
+		admins.GET("", handlers.GetAdmins)
+		admins.GET("/:id", handlers.GetAdminByID)
+		admins.POST("", handlers.CreateAdmin)
+		admins.PUT("/:id", handlers.UpdateAdmin)
+		admins.DELETE("/:id", handlers.DeleteAdmin)
+	}
+
+	// Models
+	models := r.Group("/models")
+	{
+		models.GET("", handlers.GetModelProfiles)
+		models.GET("/:id", handlers.GetModelProfileByID)
+		models.POST("", handlers.CreateModelProfile)
+		models.PUT("/:id", handlers.UpdateModelProfile)
+		models.DELETE("/:id", handlers.DeleteModelProfile)
+	}
+
+	// Migrate & Seed
+	r.GET("/migrate", handlers.MigrateHandler)
+	r.GET("/seed", handlers.SeedHandler)
+}

@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    // Modern JavaScript and libraries
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+
+    // TypeScript and React setup
+    "types": ["vitest/globals"],
+    "allowJs": true,
+    "strict": true,
+    "noEmit": true,
+    "jsx": "preserve",
+
+    // Module handling
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    // Performance optimizations
+    "incremental": true,
+    "skipLibCheck": true,
+
+    // Next.js integration
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+
+    // Path resolution
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+
+    // Strict type checking (existing + enhancements)
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUnusedLocals": true,
+    "noErrorTruncation": true
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,49 @@
+# Бинарники Go
+*.exe
+*.test
+*.out
+
+# Каталоги сборки Go
+/build/
+bin/
+vendor/
+coverage.out
+
+# Кеш Go
+*.log
+*.cache
+*.tmp
+*.bak
+
+# Временные директории Go
+**/__debug_bin*/
+__debug_bin*
+
+
+# Файлы IDE
+.vscode/
+.idea/
+*.swp
+
+# Файлы ОС
+.DS_Store
+Thumbs.db
+
+# .env-файлы и приватные конфиги
+.env
+.env.local
+.env.*.local
+
+# PostgreSQL dumps
+*.dump
+
+# Логи
+logs/
+*.log
+
+# БД файлового типа (если использовалась SQLite до этого)
+*.db
+*.sqlite
+
+# Исключить сид-файлы, если не нужны в Git
+seed.go
