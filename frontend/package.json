@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "node scripts/generate-build-meta.js && next build",
+    "build": "next build",
+    "build:dev": "node scripts/generate-build-meta.js && next build",
     "dev": "next dev",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
@@ -17,9 +18,9 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "type-check": "tsc --noEmit",
     "test": "vitest",
-    "analyze": "cross-env ANALYZE=true yarn build",
-    "analyze:server": "cross-env BUNDLE_ANALYZE=server yarn build",
-    "analyze:browser": "cross-env BUNDLE_ANALYZE=browser yarn build"
+    "analyze": "cross-env ANALYZE=true yarn build:dev",
+    "analyze:server": "cross-env BUNDLE_ANALYZE=server yarn build:dev",
+    "analyze:browser": "cross-env BUNDLE_ANALYZE=browser yarn build:dev"
   },
   "dependencies": {
     "@firebase/auth": "^1.10.7",
