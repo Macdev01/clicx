@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"mvp-go-backend/database"
-	"mvp-go-backend/models"
+	"go-backend/database"
+	"go-backend/models"
 	"net/http"
 	"time"
 
@@ -12,10 +12,14 @@ import (
 
 func GetPosts(c *gin.Context) {
 	var posts []models.Post
-	database.DB.Preload("User").
+	if err := database.DB.Preload("User").
 		Preload("Media").
 		Preload("ModelProfile").
-		Find(&posts)
+		Find(&posts).Error; err != nil {
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 	c.JSON(http.StatusOK, posts)
 }
 
@@ -32,7 +36,8 @@ func GetPostByID(c *gin.Context) {
 		First(&post, "id = ?", id).Error
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
@@ -50,11 +55,13 @@ func GetPostByID(c *gin.Context) {
 func CreatePost(c *gin.Context) {
 	var post models.Post
 	if err := c.ShouldBindJSON(&post); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 	if err := database.DB.Create(&post).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	c.JSON(http.StatusCreated, post)
@@ -64,13 +71,12 @@ func UpdatePost(c *gin.Context) {
 	id := c.Param("id")
 	var post models.Post
 
-	err := database.DB.
-		Preload("Media").
+	if err := database.DB.Preload("Media").
 		Preload("User").
 		Preload("ModelProfile").
-		First(&post, "id = ?", id).Error
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+		First(&post, "id = ?", id).Error; err != nil {
+		c.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
@@ -94,7 +100,8 @@ func UpdatePost(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
@@ -103,14 +110,14 @@ func UpdatePost(c *gin.Context) {
 
 	parsedTime, err := time.Parse(time.RFC3339, input.PublishedAt)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid published_time format (use RFC3339)"})
+		c.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid published_time format (use RFC3339)"})
 		return
 	}
 	post.PublishedAt = parsedTime
 
 	tx := database.DB.Begin()
 
-	// Update media
 	if len(post.Media) > 0 {
 		post.Media[0].Type = input.Media.Type
 		post.Media[0].URL = input.Media.URL
@@ -119,12 +126,12 @@ func UpdatePost(c *gin.Context) {
 
 		if err := tx.Save(&post.Media[0]).Error; err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update media: " + err.Error()})
+			c.Error(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 	}
 
-	// Update user (модель)
 	post.User.Name = input.Model.Name
 	post.User.Nickname = input.Model.Nickname
 	post.User.Email = input.Model.Email
@@ -133,20 +140,22 @@ func UpdatePost(c *gin.Context) {
 
 	if err := tx.Save(&post.User).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user: " + err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	// Update model profile (если есть)
 	if err := tx.Save(&post.ModelProfile).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update model profile: " + err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(&post).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update post: " + err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -164,7 +173,8 @@ func DeletePost(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := database.DB.Delete(&models.Post{}, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete post: " + err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 

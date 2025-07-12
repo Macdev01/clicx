@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"mvp-go-backend/database"
+	"go-backend/database"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,4 +1,4 @@
-module mvp-go-backend
+module go-backend
 
 go 1.24.4
 
@@ -16,6 +16,8 @@ require (
 	gorm.io/gorm v1.30.0
 )
 
+require github.com/davecgh/go-spew v1.1.1 // indirect
+
 require (
 	cel.dev/expr v0.23.1 // indirect
 	cloud.google.com/go v0.121.0 // indirect
@@ -31,6 +33,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.51.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.51.0 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
+	github.com/NdoleStudio/coinpayments-go v0.0.3
 	github.com/bytedance/sonic v1.13.3 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

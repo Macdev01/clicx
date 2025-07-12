@@ -1,11 +1,10 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
+	"go-backend/config"
+	"go-backend/models"
 	"log"
-	"mvp-go-backend/config"
-	"mvp-go-backend/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -29,20 +28,14 @@ func InitDB() {
 	log.Println("✅ Успешное подключение к БД")
 }
 
-func GetDB() *sql.DB {
+func GetDB() *gorm.DB {
 	if DB == nil {
 		log.Fatal("БД не инициализирована. Сначала вызови InitDB()")
 	}
-
-	sqlDB, err := DB.DB()
-	if err != nil {
-		log.Fatalf("Не удалось получить *sql.DB из GORM: %v", err)
-	}
-
-	return sqlDB
+	return DB
 }
 
-func MigrateAll() {
+func MigrateAll() error {
 	err := DB.AutoMigrate(
 		&models.Admin{},
 		&models.User{},
@@ -51,10 +44,12 @@ func MigrateAll() {
 		&models.Comment{},
 		&models.Post{},
 		&models.Order{},
+		&models.Payment{},
 	)
 	if err != nil {
-		log.Fatalf("Ошибка миграции: %v", err)
+		return fmt.Errorf("ошибка миграции: %w", err)
 	}
 
-	log.Println("Миграции прошли успешно")
+	log.Println("✅ Миграции прошли успешно")
+	return nil
 }

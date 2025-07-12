@@ -9,13 +9,15 @@ import (
 )
 
 type Config struct {
-	AppPort    string
-	DBHost     string
-	DBPort     int
-	DBUser     string
-	DBPassword string
-	DBName     string
-	JwtSecret  string
+	AppPort                string
+	DBHost                 string
+	DBPort                 int
+	DBUser                 string
+	DBPassword             string
+	DBName                 string
+	JwtSecret              string
+	CoinPaymentsPublicKey  string
+	CoinPaymentsPrivateKey string
 }
 
 var AppConfig *Config
@@ -32,13 +34,15 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		AppPort:    getEnv("APP_PORT", "8080"),
-		DBHost:     getEnv("DB_HOST", ""),
-		DBPort:     port,
-		DBUser:     getEnv("DB_USER", ""),
-		DBPassword: getEnv("DB_PASSWORD", ""),
-		DBName:     getEnv("DB_NAME", ""),
-		JwtSecret:  getEnv("JWT_SECRET", ""),
+		AppPort:                getEnv("APP_PORT", "8080"),
+		DBHost:                 getEnv("DB_HOST", ""),
+		DBPort:                 port,
+		DBUser:                 getEnv("DB_USER", ""),
+		DBPassword:             getEnv("DB_PASSWORD", ""),
+		DBName:                 getEnv("DB_NAME", ""),
+		JwtSecret:              getEnv("JWT_SECRET", ""),
+		CoinPaymentsPublicKey:  getEnv("COINPAYMENTS_KEY", ""),
+		CoinPaymentsPrivateKey: getEnv("COINPAYMENTS_SECRET", ""),
 	}
 }
 

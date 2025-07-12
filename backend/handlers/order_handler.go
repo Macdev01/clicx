@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"mvp-go-backend/database"
-	"mvp-go-backend/models"
+	"go-backend/database"
+	"go-backend/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +10,11 @@ import (
 
 func GetOrders(c *gin.Context) {
 	var orders []models.Order
-	database.DB.Find(&orders)
+	if err := database.DB.Find(&orders).Error; err != nil {
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 	c.JSON(http.StatusOK, orders)
 }
 
@@ -18,7 +22,8 @@ func GetOrderByID(c *gin.Context) {
 	id := c.Param("id")
 	var order models.Order
 	if err := database.DB.First(&order, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	c.JSON(http.StatusOK, order)
@@ -27,11 +32,13 @@ func GetOrderByID(c *gin.Context) {
 func CreateOrder(c *gin.Context) {
 	var order models.Order
 	if err := c.ShouldBindJSON(&order); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 	if err := database.DB.Create(&order).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	c.JSON(http.StatusCreated, order)
@@ -41,15 +48,18 @@ func UpdateOrder(c *gin.Context) {
 	id := c.Param("id")
 	var order models.Order
 	if err := database.DB.First(&order, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 	if err := c.ShouldBindJSON(&order); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 	if err := database.DB.Save(&order).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	c.JSON(http.StatusOK, order)
@@ -58,7 +68,8 @@ func UpdateOrder(c *gin.Context) {
 func DeleteOrder(c *gin.Context) {
 	id := c.Param("id")
 	if err := database.DB.Delete(&models.Order{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Order deleted"})

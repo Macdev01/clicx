@@ -5,8 +5,8 @@ import (
 	"os"
 	"strconv"
 
-	"mvp-go-backend/config"
-	"mvp-go-backend/database"
+	"go-backend/config"
+	"go-backend/database"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"

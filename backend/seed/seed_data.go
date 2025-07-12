@@ -1,30 +1,32 @@
 package seed
 
 import (
+	"fmt"
+	"go-backend/config"
+	"go-backend/database"
+	"go-backend/models"
 	"log"
 	"math/rand"
-	"mvp-go-backend/config"
-	"mvp-go-backend/database"
-	"mvp-go-backend/models"
 	"time"
 
 	"github.com/bxcodec/faker/v4"
 	"github.com/google/uuid"
 )
 
-func truncateAllTables() {
+func truncateAllTables() error {
 	err := database.DB.Exec(`
 		TRUNCATE TABLE 
 			admins, users, model_profiles, posts, orders, media, comments 
 		RESTART IDENTITY CASCADE
 	`).Error
 	if err != nil {
-		log.Fatalf("❌ Ошибка при очистке таблиц: %v", err)
+		return fmt.Errorf("ошибка при очистке таблиц: %w", err)
 	}
 	log.Println("🧹 Таблицы очищены")
+	return nil
 }
 
-func RunUsers() []models.User {
+func RunUsers() ([]models.User, error) {
 	var users []models.User
 	for i := 0; i < 10; i++ {
 		users = append(users, models.User{
@@ -37,29 +39,29 @@ func RunUsers() []models.User {
 		})
 	}
 	if err := database.DB.Create(&users).Error; err != nil {
-		log.Fatalf("❌ Ошибка при создании Users: %v", err)
+		return nil, fmt.Errorf("ошибка при создании Users: %w", err)
 	}
 	log.Printf("✅ Сидировано Users: %d", len(users))
-	return users
+	return users, nil
 }
 
-func RunModelProfiles(users []models.User) []models.ModelProfile {
+func RunModelProfiles(users []models.User) ([]models.ModelProfile, error) {
 	var profiles []models.ModelProfile
-	for i := 0; i < len(users); i++ {
+	for _, user := range users {
 		profiles = append(profiles, models.ModelProfile{
-			UserID: users[i].ID,
+			UserID: user.ID,
 			Bio:    faker.Sentence(),
 			Banner: faker.URL(),
 		})
 	}
 	if err := database.DB.Create(&profiles).Error; err != nil {
-		log.Fatalf("❌ Ошибка при создании ModelProfiles: %v", err)
+		return nil, fmt.Errorf("ошибка при создании ModelProfiles: %w", err)
 	}
 	log.Printf("✅ Сидировано ModelProfiles: %d", len(profiles))
-	return profiles
+	return profiles, nil
 }
 
-func RunAdmins() {
+func RunAdmins() error {
 	admin := models.Admin{
 		Name:      "Admin",
 		Email:     "admin@example.com",
@@ -69,14 +71,14 @@ func RunAdmins() {
 		Balance:   999.99,
 	}
 	if err := database.DB.Create(&admin).Error; err != nil {
-		log.Fatalf("❌ Ошибка при создании Admin: %v", err)
+		return fmt.Errorf("ошибка при создании Admin: %w", err)
 	}
 	log.Println("✅ Сидирован 1 Admin")
+	return nil
 }
 
-func RunPosts(users []models.User, profiles []models.ModelProfile) []models.Post {
+func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Post, error) {
 	var posts []models.Post
-
 	for i := 0; i < 15; i++ {
 		postID := uuid.New()
 		post := models.Post{
@@ -99,36 +101,14 @@ func RunPosts(users []models.User, profiles []models.ModelProfile) []models.Post
 		}
 		posts = append(posts, post)
 	}
-
 	if err := database.DB.Create(&posts).Error; err != nil {
-		log.Fatalf("❌ Ошибка при создании Posts: %v", err)
+		return nil, fmt.Errorf("ошибка при создании Posts: %w", err)
 	}
 	log.Printf("✅ Сидировано Posts: %d", len(posts))
-	return posts
+	return posts, nil
 }
 
-func RunMedia(posts []models.Post) []models.Media {
-	var mediaList []models.Media
-
-	for _, post := range posts {
-		media := models.Media{
-			PostID:   post.ID,
-			Type:     "video",
-			URL:      "https://www.w3schools.com/html/mov_bbb.mp4",
-			Cover:    "https://picsum.photos/600/400",
-			Duration: 720,
-		}
-		mediaList = append(mediaList, media)
-	}
-
-	if err := database.DB.Create(&mediaList).Error; err != nil {
-		log.Fatalf("❌ Ошибка при создании Media: %v", err)
-	}
-	log.Printf("✅ Захардкожено Media: %d", len(mediaList))
-	return mediaList
-}
-
-func RunOrders(users []models.User) {
+func RunOrders(users []models.User) error {
 	var orders []models.Order
 	for i := 0; i < 20; i++ {
 		orders = append(orders, models.Order{
@@ -137,12 +117,13 @@ func RunOrders(users []models.User) {
 		})
 	}
 	if err := database.DB.Create(&orders).Error; err != nil {
-		log.Fatalf("❌ Ошибка при создании Orders: %v", err)
+		return fmt.Errorf("ошибка при создании Orders: %w", err)
 	}
 	log.Printf("✅ Сидировано Orders: %d", len(orders))
+	return nil
 }
 
-func RunComments(posts []models.Post, users []models.User) {
+func RunComments(posts []models.Post, users []models.User) error {
 	var comments []models.Comment
 	for i := 0; i < 30; i++ {
 		comments = append(comments, models.Comment{
@@ -153,23 +134,41 @@ func RunComments(posts []models.Post, users []models.User) {
 		})
 	}
 	if err := database.DB.Create(&comments).Error; err != nil {
-		log.Fatalf("❌ Ошибка при создании Comments: %v", err)
+		return fmt.Errorf("ошибка при создании Comments: %w", err)
 	}
 	log.Printf("✅ Сидировано Comments: %d", len(comments))
+	return nil
 }
 
-func SeedData() {
+func SeedData() error {
 	config.LoadConfig()
 	database.InitDB()
-	truncateAllTables()
 
-	RunAdmins()
-	users := RunUsers()
-	profiles := RunModelProfiles(users)
-	posts := RunPosts(users, profiles)
-	//RunMedia(posts)
-	RunOrders(users)
-	RunComments(posts, users)
+	if err := truncateAllTables(); err != nil {
+		return err
+	}
+	if err := RunAdmins(); err != nil {
+		return err
+	}
+	users, err := RunUsers()
+	if err != nil {
+		return err
+	}
+	profiles, err := RunModelProfiles(users)
+	if err != nil {
+		return err
+	}
+	posts, err := RunPosts(users, profiles)
+	if err != nil {
+		return err
+	}
+	if err := RunOrders(users); err != nil {
+		return err
+	}
+	if err := RunComments(posts, users); err != nil {
+		return err
+	}
 
 	log.Println("🎉 Сидирование завершено успешно.")
+	return nil
 }

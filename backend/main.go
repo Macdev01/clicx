@@ -1,12 +1,15 @@
 package main
 
 import (
+	"log"
 	"time"
 
-	"mvp-go-backend/config"
-	"mvp-go-backend/database"
-	"mvp-go-backend/middleware"
-	"mvp-go-backend/routes"
+	"go-backend/config"
+	"go-backend/database"
+	"go-backend/middleware"
+	"go-backend/routes"
+
+	"github.com/joho/godotenv"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -16,6 +19,11 @@ func main() {
 	// Загрузка конфигурации и подключение к базе
 	config.LoadConfig()
 	database.InitDB()
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	// Инициализация Firebase — путь к JSON-файлу в корне
 	middleware.InitFirebase("clixxx-dev-44e45f09d47f.json")

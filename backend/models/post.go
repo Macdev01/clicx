@@ -21,5 +21,5 @@ type Post struct {
 	Comments     []Comment    `gorm:"foreignKey:PostID" json:"comments"`
 	IsPurchased  bool         `gorm:"-" json:"isPurchased"`
 
-	CreatedAt time.Time `gorm:"-" json:"-"` // <--- вот это важно
+	CreatedAt time.Time `gorm:"-" json:"-"`
 }

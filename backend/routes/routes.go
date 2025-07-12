@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"mvp-go-backend/handlers"
+	"go-backend/handlers"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,6 +12,7 @@ func InitRoutes(r *gin.Engine) {
 	{
 		users.GET("", handlers.GetUsers)
 		users.GET("/:id", handlers.GetUserByID)
+		users.GET("/:id/model-profile", handlers.GetModelProfileByUserID)
 		users.POST("", handlers.CreateUser)
 		users.PUT("/:id", handlers.UpdateUser)
 		users.DELETE("/:id", handlers.DeleteUser)
@@ -56,6 +57,12 @@ func InitRoutes(r *gin.Engine) {
 		models.PUT("/:id", handlers.UpdateModelProfile)
 		models.DELETE("/:id", handlers.DeleteModelProfile)
 	}
+
+	//Plisio Payment
+	r.POST("/payments/plisio", handlers.CreatePlisioInvoice)
+	r.POST("/payments/plisio/callback", handlers.PlisioCallback)
+	// r.GET("/payment/success", handlers.PaymentSuccessPage) // Uncomment when PaymentSuccessPage handler is implemented
+	//r.GET("/payment/failed", handlers.PaymentFailedPage) // Uncomment when PaymentFailedPage handler is implemented
 
 	// Migrate & Seed
 	r.GET("/migrate", handlers.MigrateHandler)

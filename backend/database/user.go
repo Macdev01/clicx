@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"mvp-go-backend/models"
+	"go-backend/models"
 
 	"gorm.io/gorm"
 )

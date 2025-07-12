@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"mvp-go-backend/config"
-	"mvp-go-backend/seed"
+	"go-backend/config"
+	"go-backend/seed"
 )
 
 func main() {
