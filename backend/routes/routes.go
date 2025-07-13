@@ -2,6 +2,7 @@ package routes
 
 import (
 	"go-backend/handlers"
+	"go-backend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -56,6 +57,13 @@ func InitRoutes(r *gin.Engine) {
 		models.POST("", handlers.CreateModelProfile)
 		models.PUT("/:id", handlers.UpdateModelProfile)
 		models.DELETE("/:id", handlers.DeleteModelProfile)
+	}
+
+	video := r.Group("/videos", middleware.UserMiddlewareGin())
+	{
+		video.POST("/upload", handlers.UploadVideo)
+		video.GET("/:id/stream", handlers.StreamVideo)
+		video.DELETE("/:id", handlers.DeleteVideo)
 	}
 
 	//Plisio Payment
