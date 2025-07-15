@@ -1,2 +1,8 @@
 # Postgres environment file
 postgres/.env 
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
