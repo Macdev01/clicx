@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/bxcodec/faker/v4"
-	"github.com/google/uuid"
 )
 
 func truncateAllTables() error {
@@ -28,6 +27,19 @@ func truncateAllTables() error {
 
 func RunUsers() ([]models.User, error) {
 	var users []models.User
+
+	// Добавляем админа первым
+	users = append(users, models.User{
+		Name:      "Admin",
+		Email:     "admin@example.com",
+		Nickname:  "admin",
+		Password:  "admin123", // ❗ лучше хэшировать
+		Balance:   999.99,
+		AvatarURL: faker.URL(),
+		IsAdmin:   true,
+	})
+
+	// Генерируем остальных пользователей
 	for i := 0; i < 10; i++ {
 		users = append(users, models.User{
 			Name:      faker.Name(),
@@ -38,10 +50,11 @@ func RunUsers() ([]models.User, error) {
 			AvatarURL: faker.URL(),
 		})
 	}
+
 	if err := database.DB.Create(&users).Error; err != nil {
 		return nil, fmt.Errorf("ошибка при создании Users: %w", err)
 	}
-	log.Printf("✅ Сидировано Users: %d", len(users))
+	log.Printf("✅ Сидировано Users: %d (включая админа)", len(users))
 	return users, nil
 }
 
@@ -61,28 +74,11 @@ func RunModelProfiles(users []models.User) ([]models.ModelProfile, error) {
 	return profiles, nil
 }
 
-func RunAdmins() error {
-	admin := models.Admin{
-		Name:      "Admin",
-		Email:     "admin@example.com",
-		Nickname:  "admin",
-		Password:  "admin123",
-		AvatarURL: faker.URL(),
-		Balance:   999.99,
-	}
-	if err := database.DB.Create(&admin).Error; err != nil {
-		return fmt.Errorf("ошибка при создании Admin: %w", err)
-	}
-	log.Println("✅ Сидирован 1 Admin")
-	return nil
-}
-
 func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Post, error) {
 	var posts []models.Post
 	for i := 0; i < 15; i++ {
-		postID := uuid.New()
 		post := models.Post{
-			ID:          postID,
+			// ID не задаем, GORM поставит сам (uint auto-increment)
 			UserID:      users[i%len(users)].ID,
 			ModelID:     profiles[i%len(profiles)].ID,
 			Text:        faker.Paragraph(),
@@ -91,7 +87,6 @@ func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Pos
 			LikesCount:  rand.Intn(1000),
 			Media: []models.Media{
 				{
-					PostID:   postID,
 					Type:     "video",
 					URL:      "https://www.w3schools.com/html/mov_bbb.mp4",
 					Cover:    "https://picsum.photos/600/400",
@@ -101,26 +96,13 @@ func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Pos
 		}
 		posts = append(posts, post)
 	}
+
 	if err := database.DB.Create(&posts).Error; err != nil {
 		return nil, fmt.Errorf("ошибка при создании Posts: %w", err)
 	}
+
 	log.Printf("✅ Сидировано Posts: %d", len(posts))
 	return posts, nil
-}
-
-func RunOrders(users []models.User) error {
-	var orders []models.Order
-	for i := 0; i < 20; i++ {
-		orders = append(orders, models.Order{
-			UserID: users[i%len(users)].ID,
-			Summ:   rand.Intn(5000),
-		})
-	}
-	if err := database.DB.Create(&orders).Error; err != nil {
-		return fmt.Errorf("ошибка при создании Orders: %w", err)
-	}
-	log.Printf("✅ Сидировано Orders: %d", len(orders))
-	return nil
 }
 
 func RunComments(posts []models.Post, users []models.User) error {
@@ -147,9 +129,6 @@ func SeedData() error {
 	if err := truncateAllTables(); err != nil {
 		return err
 	}
-	if err := RunAdmins(); err != nil {
-		return err
-	}
 	users, err := RunUsers()
 	if err != nil {
 		return err
@@ -162,13 +141,9 @@ func SeedData() error {
 	if err != nil {
 		return err
 	}
-	if err := RunOrders(users); err != nil {
-		return err
-	}
 	if err := RunComments(posts, users); err != nil {
 		return err
 	}
-
 	log.Println("🎉 Сидирование завершено успешно.")
 	return nil
 }

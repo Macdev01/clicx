@@ -9,59 +9,54 @@ import (
 	"go-backend/middleware"
 	"go-backend/routes"
 
-	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Загрузка конфигурации и подключение к базе
-	config.LoadConfig()
-	database.InitDB()
+	// Создаём zap-логгер
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+	logger.Info("Сервис запущен", zap.String("env", "prod"))
 
+	// Загружаем .env
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Инициализация Firebase — путь к JSON-файлу в корне
-	middleware.InitFirebase("clixxx-dev-44e45f09d47f.json")
+	// Конфиг и база
+	config.LoadConfig()
+	database.InitDB()
 
-	r := gin.Default()
+	// Firebase
+	middleware.InitFirebase()
 
-	// Middleware
-	r.Use(middleware.ErrorHandler())      // централизованная обработка ошибок
-	r.Use(middleware.UserMiddlewareGin()) // проверка Firebase токена и добавление пользователя в контекст
-	r.SetTrustedProxies([]string{"127.0.0.1"})
+	// Создаём Gin
+	r := gin.New()
+	r.Use(gin.Recovery()) // защита от паник
 
-	// CORS
+	// Подключаем CORS
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"http://localhost:3000",
-			"http://127.0.0.1:3000",
-			"http://159.223.94.49:3000",
-		},
-		AllowMethods: []string{
-			"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD",
-		},
-		AllowHeaders: []string{
-			"Origin",
-			"Content-Type",
-			"Content-Length",
-			"Accept",
-			"Accept-Encoding",
-			"X-CSRF-Token",
-			"Authorization",
-			"X-Requested-With",
-			"X-Auth-Token",
-		},
+		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://159.223.94.49:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Content-Length", "Accept", "Accept-Encoding", "X-CSRF-Token", "Authorization", "X-Requested-With", "X-Auth-Token"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Инициализация маршрутов
+	// Подключаем наши middleware
+	r.Use(middleware.LoggerMiddleware(logger)) // ЛОГИРОВАНИЕ HTTP
+	r.Use(middleware.ErrorHandler())           // обработка ошибок
+	r.Use(middleware.UserMiddlewareGin())      // Firebase
+
+	r.SetTrustedProxies([]string{"127.0.0.1"})
+
+	// Роуты
 	routes.InitRoutes(r)
 
 	// Запуск сервера

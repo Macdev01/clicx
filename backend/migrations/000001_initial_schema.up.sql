@@ -9,19 +9,8 @@ CREATE TABLE users (
     nickname VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     balance DECIMAL(10,2) DEFAULT 0.00,
-    avatar_url VARCHAR(500)
-);
-
--- ADMINS
-CREATE TABLE admins (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    nickname VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    balance DECIMAL(10,2) DEFAULT 0.00,
     avatar_url VARCHAR(500),
-    created_at TIMESTAMP DEFAULT now()
+    is_admin BOOLEAN DEFAULT FALSE
 );
 
 -- MODEL PROFILES

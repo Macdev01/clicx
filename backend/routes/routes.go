@@ -27,6 +27,8 @@ func InitRoutes(r *gin.Engine) {
 		posts.POST("", handlers.CreatePost)
 		posts.PUT("/:id", handlers.UpdatePost)
 		posts.DELETE("/:id", handlers.DeletePost)
+		posts.POST("/:id/like", middleware.UserMiddlewareGin(), handlers.ToggleLikePost)
+
 	}
 
 	// Orders
@@ -39,16 +41,6 @@ func InitRoutes(r *gin.Engine) {
 		orders.DELETE("/:id", handlers.DeleteOrder)
 	}
 
-	// Admins
-	admins := r.Group("/admins")
-	{
-		admins.GET("", handlers.GetAdmins)
-		admins.GET("/:id", handlers.GetAdminByID)
-		admins.POST("", handlers.CreateAdmin)
-		admins.PUT("/:id", handlers.UpdateAdmin)
-		admins.DELETE("/:id", handlers.DeleteAdmin)
-	}
-
 	// Models
 	models := r.Group("/models")
 	{
@@ -59,12 +51,22 @@ func InitRoutes(r *gin.Engine) {
 		models.DELETE("/:id", handlers.DeleteModelProfile)
 	}
 
+	// Видео
 	video := r.Group("/videos", middleware.UserMiddlewareGin())
 	{
-		video.POST("/upload", handlers.UploadVideo)
+		video.POST("/upload", handlers.UploadVideo) // будет через сервис Bunny
 		video.GET("/:id/stream", handlers.StreamVideo)
 		video.DELETE("/:id", handlers.DeleteVideo)
 	}
+
+	// Админский контент
+	adminContent := r.Group("/admin", middleware.UserMiddlewareGin())
+	{
+		adminContent.POST("/posts/upload", handlers.CreatePostWithMedia)
+	}
+
+	// Webhook Bunny для обновления статуса загрузки
+	r.POST("/webhook/bunny", handlers.BunnyWebhook)
 
 	//Plisio Payment
 	r.POST("/payments/plisio", handlers.CreatePlisioInvoice)

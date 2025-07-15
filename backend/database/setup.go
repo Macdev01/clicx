@@ -37,7 +37,6 @@ func GetDB() *gorm.DB {
 
 func MigrateAll() error {
 	err := DB.AutoMigrate(
-		&models.Admin{},
 		&models.User{},
 		&models.ModelProfile{},
 		&models.Media{},
@@ -45,6 +44,7 @@ func MigrateAll() error {
 		&models.Post{},
 		&models.Order{},
 		&models.Payment{},
+		&models.Like{},
 	)
 	if err != nil {
 		return fmt.Errorf("ошибка миграции: %w", err)

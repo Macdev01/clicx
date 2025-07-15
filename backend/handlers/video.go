@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,8 +17,107 @@ import (
 	"go-backend/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
+
+func CreatePostWithMedia(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
+	// Проверка, что пользователь админ
+	if !user.IsAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Admins only"})
+		return
+	}
+
+	modelIDStr := c.PostForm("model_id")
+	if modelIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "model_id is required"})
+		return
+	}
+
+	modelID, err := strconv.Atoi(modelIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid model_id"})
+		return
+	}
+
+	// Проверка существования модели
+	var modelProfile models.ModelProfile
+	if err := database.DB.Preload("User").First(&modelProfile, modelID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Model not found"})
+		return
+	}
+
+	text := c.PostForm("text")
+	isPremium := c.PostForm("is_premium") == "true"
+
+	// Создаём новый пост
+	post := models.Post{
+		Text:        text,
+		IsPremium:   isPremium,
+		PublishedAt: time.Now(),
+		UserID:      modelProfile.UserID,
+		ModelID:     modelProfile.ID,
+	}
+	if err := database.DB.Create(&post).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post"})
+		return
+	}
+
+	// Загружаем файлы
+	form, _ := c.MultipartForm()
+	files := form.File["files"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "At least one file required"})
+		return
+	}
+
+	var mediaList []models.Media
+	for _, file := range files {
+		f, _ := file.Open()
+		defer f.Close()
+
+		buf := bytes.NewBuffer(nil)
+		io.Copy(buf, f)
+
+		path := fmt.Sprintf("%d/%s", modelProfile.UserID, file.Filename)
+		uploadURL := fmt.Sprintf("https://storage.bunnycdn.com/%s/%s", config.AppConfig.BunnyStorageZone, path)
+
+		req, _ := http.NewRequest("PUT", uploadURL, bytes.NewReader(buf.Bytes()))
+		req.Header.Set("AccessKey", config.AppConfig.BunnyStorageKey)
+		req.Header.Set("Content-Type", "application/octet-stream")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil || resp.StatusCode > 299 {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "Upload to Bunny failed"})
+			return
+		}
+
+		// Определяем тип по расширению
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+		mediaType := "photo"
+		if ext == ".mp4" || ext == ".mov" {
+			mediaType = "video"
+		}
+
+		media := models.Media{
+			PostID:   post.ID,
+			Type:     mediaType,
+			URL:      "/" + path,
+			Duration: 0,
+		}
+		mediaList = append(mediaList, media)
+	}
+
+	// Сохраняем все медиа
+	if err := database.DB.Create(&mediaList).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save media"})
+		return
+	}
+
+	// Возвращаем пост с медиа
+	post.Media = mediaList
+	c.JSON(http.StatusOK, post)
+}
 
 func UploadVideo(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
@@ -54,17 +154,18 @@ func UploadVideo(c *gin.Context) {
 		return
 	}
 
-	postID := c.PostForm("post_id") // UUID
-	uuidPostID, err := uuid.Parse(postID)
+	postIDStr := c.PostForm("post_id")
+	postID, err := strconv.ParseUint(postIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post_id"})
 		return
 	}
+
 	media := models.Media{
-		PostID:   uuidPostID,
+		PostID:   uint(postID),
 		Type:     "video",
 		URL:      "/" + path,
-		Duration: 0, // позже можно вычислить
+		Duration: 0,
 	}
 
 	if err := database.DB.Create(&media).Error; err != nil {
