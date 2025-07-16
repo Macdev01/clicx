@@ -2,10 +2,12 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Post struct {
-	ID          uint      `gorm:"primaryKey" json:"postId"`
+	ID          uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	Text        string    `json:"text"`
 	IsPremium   bool      `json:"isPremium"`
 	PublishedAt time.Time `json:"published_time"`

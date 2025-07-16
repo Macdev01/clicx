@@ -17,12 +17,13 @@ import (
 	"go-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
+// ✅ Создать пост с медиа
 func CreatePostWithMedia(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
-	// Проверка, что пользователь админ
 	if !user.IsAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Admins only"})
 		return
@@ -40,7 +41,6 @@ func CreatePostWithMedia(c *gin.Context) {
 		return
 	}
 
-	// Проверка существования модели
 	var modelProfile models.ModelProfile
 	if err := database.DB.Preload("User").First(&modelProfile, modelID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Model not found"})
@@ -50,8 +50,8 @@ func CreatePostWithMedia(c *gin.Context) {
 	text := c.PostForm("text")
 	isPremium := c.PostForm("is_premium") == "true"
 
-	// Создаём новый пост
 	post := models.Post{
+		ID:          uuid.New(),
 		Text:        text,
 		IsPremium:   isPremium,
 		PublishedAt: time.Now(),
@@ -63,7 +63,6 @@ func CreatePostWithMedia(c *gin.Context) {
 		return
 	}
 
-	// Загружаем файлы
 	form, _ := c.MultipartForm()
 	files := form.File["files"]
 	if len(files) == 0 {
@@ -79,9 +78,11 @@ func CreatePostWithMedia(c *gin.Context) {
 		buf := bytes.NewBuffer(nil)
 		io.Copy(buf, f)
 
+		// ✅ Путь
 		path := fmt.Sprintf("%d/%s", modelProfile.UserID, file.Filename)
-		uploadURL := fmt.Sprintf("https://storage.bunnycdn.com/%s/%s", config.AppConfig.BunnyStorageZone, path)
+		uploadURL := fmt.Sprintf("https://sg.storage.bunnycdn.com/%s/%s", config.AppConfig.BunnyStorageZone, path)
 
+		// ✅ Загрузка на Bunny
 		req, _ := http.NewRequest("PUT", uploadURL, bytes.NewReader(buf.Bytes()))
 		req.Header.Set("AccessKey", config.AppConfig.BunnyStorageKey)
 		req.Header.Set("Content-Type", "application/octet-stream")
@@ -92,7 +93,9 @@ func CreatePostWithMedia(c *gin.Context) {
 			return
 		}
 
-		// Определяем тип по расширению
+		// ✅ CDN URL
+		cdnURL := fmt.Sprintf("https://%s/%s", config.AppConfig.BunnyPullZoneHost, path)
+
 		ext := strings.ToLower(filepath.Ext(file.Filename))
 		mediaType := "photo"
 		if ext == ".mp4" || ext == ".mov" {
@@ -102,23 +105,22 @@ func CreatePostWithMedia(c *gin.Context) {
 		media := models.Media{
 			PostID:   post.ID,
 			Type:     mediaType,
-			URL:      "/" + path,
+			URL:      cdnURL,
 			Duration: 0,
 		}
 		mediaList = append(mediaList, media)
 	}
 
-	// Сохраняем все медиа
 	if err := database.DB.Create(&mediaList).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save media"})
 		return
 	}
 
-	// Возвращаем пост с медиа
 	post.Media = mediaList
 	c.JSON(http.StatusOK, post)
 }
 
+// ✅ Загрузить видео для существующего поста
 func UploadVideo(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 
@@ -136,13 +138,10 @@ func UploadVideo(c *gin.Context) {
 	defer opened.Close()
 
 	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, opened); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Read error"})
-		return
-	}
+	io.Copy(buf, opened)
 
 	path := fmt.Sprintf("%d/%s", user.ID, file.Filename)
-	uploadURL := fmt.Sprintf("https://storage.bunnycdn.com/%s/%s", config.AppConfig.BunnyStorageZone, path)
+	uploadURL := fmt.Sprintf("https://sg.storage.bunnycdn.com/%s/%s", config.AppConfig.BunnyStorageZone, path)
 
 	req, _ := http.NewRequest("PUT", uploadURL, bytes.NewReader(buf.Bytes()))
 	req.Header.Set("AccessKey", config.AppConfig.BunnyStorageKey)
@@ -155,16 +154,18 @@ func UploadVideo(c *gin.Context) {
 	}
 
 	postIDStr := c.PostForm("post_id")
-	postID, err := strconv.ParseUint(postIDStr, 10, 64)
+	postUUID, err := uuid.Parse(postIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post_id"})
 		return
 	}
 
+	cdnURL := fmt.Sprintf("https://%s/%s", config.AppConfig.BunnyPullZoneHost, path)
+
 	media := models.Media{
-		PostID:   uint(postID),
+		PostID:   postUUID,
 		Type:     "video",
-		URL:      "/" + path,
+		URL:      cdnURL,
 		Duration: 0,
 	}
 
@@ -176,6 +177,20 @@ func UploadVideo(c *gin.Context) {
 	c.JSON(http.StatusOK, media)
 }
 
+// ✅ Получить медиа по ID
+func GetMediaByID(c *gin.Context) {
+	id := c.Param("id")
+
+	var media models.Media
+	if err := database.DB.First(&media, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Media not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, media)
+}
+
+// ✅ Ссылка для стрима с токеном
 func StreamVideo(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	id := c.Param("id")
@@ -197,31 +212,26 @@ func StreamVideo(c *gin.Context) {
 		return
 	}
 
-	if post.UserID != user.ID && !post.IsPurchased {
+	if post.IsPremium && post.UserID != user.ID && !post.IsPurchased {
 		c.JSON(http.StatusForbidden, gin.H{"error": "No access"})
 		return
 	}
 
-	// === Генерация токена ===
+	// ✅ Генерация токена Bunny
 	expires := time.Now().Add(1 * time.Hour).Unix()
-	path := media.URL // должно быть вида "/user_id/video.mp4"
-	tokenKey := config.AppConfig.BunnyTokenKey
-	raw := tokenKey + path + strconv.FormatInt(expires, 10)
+	urlPath := strings.TrimPrefix(media.URL, fmt.Sprintf("https://%s", config.AppConfig.BunnyPullZoneHost))
+	raw := fmt.Sprintf("%s%s%d", config.AppConfig.BunnyTokenKey, urlPath, expires)
 
 	hash := md5.Sum([]byte(raw))
 	token := base64.StdEncoding.EncodeToString(hash[:])
-	token = strings.
-		NewReplacer("+", "-", "/", "_", "=", "").
-		Replace(token)
+	token = strings.NewReplacer("+", "-", "/", "_", "=", "").Replace(token)
 
-	// Итоговая ссылка
-	finalURL := fmt.Sprintf("https://%s%s?token=%s&expires=%d",
-		config.AppConfig.BunnyPullZoneHost,
-		path, token, expires)
+	finalURL := fmt.Sprintf("%s?token=%s&expires=%d", media.URL, token, expires)
 
 	c.JSON(http.StatusOK, gin.H{"url": finalURL})
 }
 
+// ✅ Удаление медиа
 func DeleteVideo(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	id := c.Param("id")
@@ -238,13 +248,14 @@ func DeleteVideo(c *gin.Context) {
 		return
 	}
 
-	if post.UserID != user.ID {
+	if !user.IsAdmin && post.UserID != user.ID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
 		return
 	}
 
-	// Удаление с Bunny
-	deleteURL := fmt.Sprintf("https://storage.bunnycdn.com/%s%s", config.AppConfig.BunnyStorageZone, media.URL)
+	urlPath := strings.TrimPrefix(media.URL, fmt.Sprintf("https://%s", config.AppConfig.BunnyPullZoneHost))
+	deleteURL := fmt.Sprintf("https://sg.storage.bunnycdn.com/%s%s", config.AppConfig.BunnyStorageZone, urlPath)
+
 	req, _ := http.NewRequest("DELETE", deleteURL, nil)
 	req.Header.Set("AccessKey", config.AppConfig.BunnyStorageKey)
 
@@ -254,8 +265,10 @@ func DeleteVideo(c *gin.Context) {
 		return
 	}
 
-	// Удаление из БД
-	database.DB.Delete(&media)
+	if err := database.DB.Delete(&media).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete from DB"})
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully"})
 }

@@ -28,7 +28,6 @@ func InitRoutes(r *gin.Engine) {
 		posts.PUT("/:id", handlers.UpdatePost)
 		posts.DELETE("/:id", handlers.DeletePost)
 		posts.POST("/:id/like", middleware.UserMiddlewareGin(), handlers.ToggleLikePost)
-
 	}
 
 	// Orders
@@ -51,30 +50,29 @@ func InitRoutes(r *gin.Engine) {
 		models.DELETE("/:id", handlers.DeleteModelProfile)
 	}
 
-	// Видео
-	video := r.Group("/videos", middleware.UserMiddlewareGin())
+	// Media / Videos
+	videos := r.Group("/videos", middleware.UserMiddlewareGin())
 	{
-		video.POST("/upload", handlers.UploadVideo) // будет через сервис Bunny
-		video.GET("/:id/stream", handlers.StreamVideo)
-		video.DELETE("/:id", handlers.DeleteVideo)
+		videos.POST("/upload", handlers.UploadVideo)    // Загрузка видео для поста
+		videos.GET("/:id/stream", handlers.StreamVideo) // Получение ссылки для стрима
+		videos.GET("/:id", handlers.GetMediaByID)       // Получить медиа по ID
+		videos.DELETE("/:id", handlers.DeleteVideo)     // Удалить видео
 	}
 
-	// Админский контент
-	adminContent := r.Group("/admin", middleware.UserMiddlewareGin())
+	// Админские маршруты
+	admin := r.Group("/admin", middleware.UserMiddlewareGin())
 	{
-		adminContent.POST("/posts/upload", handlers.CreatePostWithMedia)
+		admin.POST("/posts/upload", handlers.CreatePostWithMedia) // Создать пост с медиа
 	}
 
-	// Webhook Bunny для обновления статуса загрузки
+	// Webhook Bunny
 	r.POST("/webhook/bunny", handlers.BunnyWebhook)
 
-	//Plisio Payment
+	// Plisio Payment
 	r.POST("/payments/plisio", handlers.CreatePlisioInvoice)
 	r.POST("/payments/plisio/callback", handlers.PlisioCallback)
-	// r.GET("/payment/success", handlers.PaymentSuccessPage) // Uncomment when PaymentSuccessPage handler is implemented
-	//r.GET("/payment/failed", handlers.PaymentFailedPage) // Uncomment when PaymentFailedPage handler is implemented
 
-	// Migrate & Seed
+	// Технические маршруты
 	r.GET("/migrate", handlers.MigrateHandler)
 	r.GET("/seed", handlers.SeedHandler)
 }

@@ -21,7 +21,7 @@ CREATE TABLE model_profiles (
     banner VARCHAR(500)
 );
 
--- POSTS
+-- POSTS (UUID PK)
 CREATE TABLE posts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     text TEXT,
@@ -32,6 +32,7 @@ CREATE TABLE posts (
     model_id INTEGER REFERENCES model_profiles(id) ON DELETE SET NULL
 );
 
+-- MEDIA
 CREATE TABLE media (
     id SERIAL PRIMARY KEY,
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
@@ -42,7 +43,7 @@ CREATE TABLE media (
     created_at TIMESTAMP DEFAULT now()
 );
 
--- COMMENTS
+-- COMMENTS (UUID reference)
 CREATE TABLE comments (
     id SERIAL PRIMARY KEY,
     post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
@@ -51,9 +52,25 @@ CREATE TABLE comments (
     time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- LIKES (UUID reference)
+CREATE TABLE likes (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT now()
+);
+
 -- ORDERS
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     summ INTEGER NOT NULL
 );
+
+-- ✅ INDEXES for performance
+CREATE INDEX idx_posts_user_id ON posts(user_id);
+CREATE INDEX idx_posts_model_id ON posts(model_id);
+CREATE INDEX idx_media_post_id ON media(post_id);
+CREATE INDEX idx_comments_post_id ON comments(post_id);
+CREATE INDEX idx_likes_post_id ON likes(post_id);
+CREATE INDEX idx_orders_user_id ON orders(user_id);

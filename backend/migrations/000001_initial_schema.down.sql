@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS posts;
 DROP TABLE IF EXISTS model_profiles;
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS likes;
 
 -- Drop UUID extension if no longer needed
 DROP EXTENSION IF EXISTS "uuid-ossp";

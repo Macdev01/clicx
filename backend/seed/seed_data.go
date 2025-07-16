@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bxcodec/faker/v4"
+	"github.com/google/uuid"
 )
 
 func truncateAllTables() error {
@@ -77,8 +78,9 @@ func RunModelProfiles(users []models.User) ([]models.ModelProfile, error) {
 func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Post, error) {
 	var posts []models.Post
 	for i := 0; i < 15; i++ {
+		postID := uuid.New() // генерируем UUID для поста
 		post := models.Post{
-			// ID не задаем, GORM поставит сам (uint auto-increment)
+			ID:          postID,
 			UserID:      users[i%len(users)].ID,
 			ModelID:     profiles[i%len(profiles)].ID,
 			Text:        faker.Paragraph(),
@@ -87,6 +89,7 @@ func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Pos
 			LikesCount:  rand.Intn(1000),
 			Media: []models.Media{
 				{
+					PostID:   postID, // UUID
 					Type:     "video",
 					URL:      "https://www.w3schools.com/html/mov_bbb.mp4",
 					Cover:    "https://picsum.photos/600/400",
@@ -109,7 +112,7 @@ func RunComments(posts []models.Post, users []models.User) error {
 	var comments []models.Comment
 	for i := 0; i < 30; i++ {
 		comments = append(comments, models.Comment{
-			PostID: posts[i%len(posts)].ID,
+			PostID: posts[i%len(posts)].ID, // UUID
 			UserID: users[i%len(users)].ID,
 			Text:   faker.Sentence(),
 			Time:   time.Now().Add(-time.Duration(rand.Intn(500)) * time.Minute),

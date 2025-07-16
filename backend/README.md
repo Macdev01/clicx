@@ -1,181 +1,140 @@
 # 📦 Backend (Go + Gin)
 
-A backend platform built in Go using the **Gin** web framework, **PostgreSQL** as the database, and integrated with the **Plisio** cryptocurrency payment system. Provides APIs for managing users, posts, orders, and payment logic.
+A backend platform built in **Go** using the **Gin** web framework, **PostgreSQL**, integrated with **Plisio** for crypto payments and **BunnyCDN** for media hosting and streaming.
 
 ---
 
 ## 🚀 Features
 
-- 🔐 Firebase JWT authentication via middleware
-- 📄 CRUD APIs: users, posts, comments, models
+- 🔐 Firebase JWT authentication middleware
+- 📄 CRUD APIs: Users, Posts, Media, Comments, Models
 - 💰 Plisio integration:
-  - create crypto invoices
-  - handle callback notifications
-  - save transactions in the database
-- 🌐 CORS configured for frontend (e.g., `http://localhost:3000`)
-- 🔄 Migration and seeding tools (`cmd/` directory)
+  - Create cryptocurrency invoices
+  - Handle callback notifications
+- 🎥 BunnyCDN integration:
+  - Upload media files directly to BunnyCDN storage
+  - Generate secure streaming URLs with signed tokens
+  - Delete media files from BunnyCDN and DB
+- 🌐 CORS configured for frontend
+- 🔄 Migration and seeding tools (`/migrate` and `/seed` endpoints)
 
 ---
 
 ## ⚙️ Tech Stack
 
-| Technology | Purpose                     |
-| ---------- | --------------------------- |
-| Go 1.21+   | Backend language            |
-| Gin        | HTTP web framework          |
-| GORM       | PostgreSQL ORM              |
-| Plisio     | Crypto payments integration |
-| Firebase   | User authentication         |
-| godotenv   | Load `.env` configuration   |
+| Technology | Purpose                               |
+| ---------- | ------------------------------------- |
+| Go 1.21+   | Backend language                      |
+| Gin        | HTTP web framework                    |
+| GORM       | ORM for PostgreSQL                    |
+| Plisio     | Crypto payments integration           |
+| BunnyCDN   | Media storage and tokenized streaming |
+| Firebase   | Authentication                        |
 
 ---
 
 ## 📁 Project Structure
 
-```
 backend/
-├── cmd/                  # Utilities: seeding & migrations
-├── config/               # .env configuration loader
-├── database/             # DB connection and migration
-├── handlers/             # Gin HTTP handlers
-├── middleware/           # Error handling and auth
-├── models/               # GORM models (User, Post, Payment, etc.)
-├── routes/               # Gin route initialization
-├── services/             # External services (Plisio)
-├── go.mod / go.sum       # Go modules
-└── main.go               # Entry point
-```
+├── cmd/ # Utilities: seeding & migrations
+├── config/ # .env loader
+├── database/ # DB connection and migrations
+├── handlers/ # HTTP Handlers (Users, Posts, Video, etc.)
+├── middleware/ # Error handling, Auth
+├── models/ # GORM models (User, Post, Media, etc.)
+├── routes/ # API routes initialization
+├── services/ # External integrations (Plisio, Bunny)
+└── main.go # Entry point
+
+makefile
+Копировать
+Редактировать
 
 ---
 
-## 🧪 Getting Started
-
-1. Create a `.env` file in `backend/`:
+## 🔑 .env Configuration
 
 ```env
+# Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=yourpassword
 DB_NAME=yourdb
 
-PLISIO_API_KEY=...
-PLISIO_SECRET_KEY=...
+# JWT & Firebase
+JWT_SECRET=your-secret
 
-JWT_SECRET=...
-```
+# BunnyCDN
+BUNNY_STORAGE_ZONE=clicx-storage
+BUNNY_STORAGE_KEY=your-storage-password
+BUNNY_PULL_ZONE_HOSTNAME=clicx.b-cdn.net
+BUNNY_TOKEN_KEY=your-token-key
 
-2. Run the server:
-
-```bash
+# Plisio
+PLISIO_API_KEY=your-plisio-key
+🧪 Run Project
+bash
+Копировать
+Редактировать
 cd backend
+go mod tidy
 go run main.go
+🔐 Authentication
+Use Firebase JWT in Authorization header:
+
+makefile
+Копировать
+Редактировать
+Authorization: Bearer <token>
+📘 API Endpoints
+✅ Users
+Method	Path	Description
+GET	/users	Get all users
+GET	/users/:id	Get user by ID
+POST	/users	Create user
+PUT	/users/:id	Update user
+DELETE	/users/:id	Delete user
+
+✅ Posts
+Method	Path	Description
+GET	/posts	Get all posts
+GET	/posts/:id	Get post by ID (with media, comments)
+POST	/posts	Create post (JSON)
+PUT	/posts/:id	Update post
+DELETE	/posts/:id	Delete post
+POST	/posts/:id/like	Toggle like
+
+✅ Admin Posts
+Method	Path	Description
+POST	/admin/posts/upload	Create post + upload media
+
+✅ Videos & Media
+Method	Path	Description
+POST	/videos/upload	Upload video to BunnyCDN & link to post
+GET	/videos/:id/stream	Generate signed BunnyCDN streaming URL
+GET	/videos/:id	Get media info by ID
+DELETE	/videos/:id	Delete video from Bunny + DB
+
+✅ Payments
+Method	Path	Description
+POST	/payments/plisio	Create crypto invoice
+POST	/payments/plisio/callback	Handle payment callback
+
+✅ Migration & Seeding
+Method	Path	Description
+GET	/migrate	Run migrations
+GET	/seed	Seed database
+
+🔒 BunnyCDN Integration Details
+Uploads happen via Storage API → https://sg.storage.bunnycdn.com/<zone>/<path>
+
+Each file gets public URL via Pull Zone → https://<pullzone>/<path>
+
+Secure streaming uses signed tokens:
+
+php-template
+Копировать
+Редактировать
+https://pullzone/user/video.mp4?token=<signature>&expires=<timestamp>
 ```
-
----
-
-## 🧰 Useful Endpoints
-
-```bash
-# Run DB migrations
-curl http://localhost:3000/migrate
-
-# Run data seeding
-curl http://localhost:3000/seed
-```
-
----
-
-## 🔐 Payment Routes
-
-| Method | Path                        | Description                     |
-| ------ | --------------------------- | ------------------------------- |
-| POST   | `/payments/plisio`          | Create crypto invoice           |
-| POST   | `/payments/plisio/callback` | Receive Plisio payment callback |
-| GET    | `/payment/success`          | Payment success (JSON)          |
-| GET    | `/payment/failed`           | Payment failed or cancelled     |
-
----
-
-## 🔒 Authentication
-
-Authentication is handled via Firebase Bearer Token, processed by middleware.  
-Pass it in headers as: `Authorization: Bearer <token>`
-
-## 📘 API Endpoints
-
-### `admin_handler.go`
-
-- `CreateAdmin()`
-- `DeleteAdmin()`
-- `GetAdminByID()`
-- `GetAdmins()`
-- `UpdateAdmin()`
-
-### `migrate_handler.go`
-
-- `MigrateHandler()`
-- `SeedHandler()`
-
-### `model_profile_handler.go`
-
-- `CreateModelProfile()`
-- `DeleteModelProfile()`
-- `GetModelProfileByID()`
-- `GetModelProfileByUserID()`
-- `GetModelProfiles()`
-- `UpdateModelProfile()`
-
-### `order_handler.go`
-
-- `CreateOrder()`
-- `DeleteOrder()`
-- `GetOrderByID()`
-- `GetOrders()`
-- `UpdateOrder()`
-
-### `plisio_payment.go`
-
-- `CreatePlisioInvoice()`
-- `PlisioCallback()`
-
-### `post_handler.go`
-
-- `CreatePost()`
-- `DeletePost()`
-- `GetPostByID()`
-- `GetPosts()`
-- `UpdatePost()`
-
-### `user_handler.go`
-
-- `CreateUser()`
-- `DeleteUser()`
-- `GetUserByID()`
-- `GetUsers()`
-- `UpdateUser()`
-
-## 📚 HTTP API Routes
-
-| Method | Path                      | Handler                          |
-| ------ | ------------------------- | -------------------------------- |
-| GET    | /users/:id                | handlers.GetUserByID             |
-| GET    | /users/:id/model-profile  | handlers.GetModelProfileByUserID |
-| PUT    | /users/:id                | handlers.UpdateUser              |
-| DELETE | /users/:id                | handlers.DeleteUser              |
-| GET    | /posts/:id                | handlers.GetPostByID             |
-| PUT    | /posts/:id                | handlers.UpdatePost              |
-| DELETE | /posts/:id                | handlers.DeletePost              |
-| GET    | /orders/:id               | handlers.GetOrderByID            |
-| PUT    | /orders/:id               | handlers.UpdateOrder             |
-| DELETE | /orders/:id               | handlers.DeleteOrder             |
-| GET    | /admins/:id               | handlers.GetAdminByID            |
-| PUT    | /admins/:id               | handlers.UpdateAdmin             |
-| DELETE | /admins/:id               | handlers.DeleteAdmin             |
-| GET    | /models/:id               | handlers.GetModelProfileByID     |
-| PUT    | /models/:id               | handlers.UpdateModelProfile      |
-| DELETE | /models/:id               | handlers.DeleteModelProfile      |
-| POST   | /payments/plisio          | handlers.CreatePlisioInvoice     |
-| POST   | /payments/plisio/callback | handlers.PlisioCallback          |
-| GET    | /migrate                  | handlers.MigrateHandler          |
-| GET    | /seed                     | handlers.SeedHandler             |
