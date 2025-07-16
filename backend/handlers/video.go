@@ -192,7 +192,6 @@ func GetMediaByID(c *gin.Context) {
 
 // ✅ Ссылка для стрима с токеном
 func StreamVideo(c *gin.Context) {
-	user := c.MustGet("user").(models.User)
 	id := c.Param("id")
 
 	var media models.Media
@@ -206,18 +205,7 @@ func StreamVideo(c *gin.Context) {
 		return
 	}
 
-	var post models.Post
-	if err := database.DB.First(&post, "id = ?", media.PostID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
-		return
-	}
-
-	if post.IsPremium && post.UserID != user.ID && !post.IsPurchased {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No access"})
-		return
-	}
-
-	// ✅ Генерация токена Bunny
+	// Генерация токена Bunny
 	expires := time.Now().Add(1 * time.Hour).Unix()
 	urlPath := strings.TrimPrefix(media.URL, fmt.Sprintf("https://%s", config.AppConfig.BunnyPullZoneHost))
 	raw := fmt.Sprintf("%s%s%d", config.AppConfig.BunnyTokenKey, urlPath, expires)

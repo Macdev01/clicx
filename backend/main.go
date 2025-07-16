@@ -17,48 +17,56 @@ import (
 )
 
 func main() {
-	// Создаём zap-логгер
+	// ✅ Создаём zap-логгер
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 	logger.Info("Сервис запущен", zap.String("env", "prod"))
 
-	// Загружаем .env
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	// ✅ Загружаем .env, но не падаем, если его нет
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️ .env не найден, используем ENV переменные")
 	}
 
-	// Конфиг и база
+	// ✅ Загружаем конфиг
 	config.LoadConfig()
+
+	// ✅ Подключаем базу
 	database.InitDB()
 
-	// Firebase
-	middleware.InitFirebase()
+	// ✅ Инициализация Firebase (только если ключи заданы)
+	if config.AppConfig.FirebaseProjectID != "" {
+		middleware.InitFirebase()
+		log.Println("✅ Firebase подключен")
+	} else {
+		log.Println("⚠️ Firebase пропущен (нет конфигурации)")
+	}
 
-	// Создаём Gin
+	// ✅ Создаём Gin
 	r := gin.New()
-	r.Use(gin.Recovery()) // защита от паник
+	r.Use(gin.Recovery())
 
-	// Подключаем CORS
+	// ✅ Настройка CORS
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://159.223.94.49:3000"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Content-Length", "Accept", "Accept-Encoding", "X-CSRF-Token", "Authorization", "X-Requested-With", "X-Auth-Token"},
-		ExposeHeaders:    []string{"Content-Length", "Content-Type", "Authorization"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length", "Authorization"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Подключаем наши middleware
-	r.Use(middleware.LoggerMiddleware(logger)) // ЛОГИРОВАНИЕ HTTP
-	r.Use(middleware.ErrorHandler())           // обработка ошибок
-	r.Use(middleware.UserMiddlewareGin())      // Firebase
+	// ✅ Подключаем middleware
+	r.Use(middleware.LoggerMiddleware(logger))
+	r.Use(middleware.ErrorHandler())
+	r.Use(middleware.UserMiddlewareGin())
 
 	r.SetTrustedProxies([]string{"127.0.0.1"})
 
-	// Роуты
+	// ✅ Роуты
 	routes.InitRoutes(r)
 
-	// Запуск сервера
-	r.Run("0.0.0.0:" + config.AppConfig.AppPort)
+	// ✅ Запускаем сервер
+	if err := r.Run("0.0.0.0:" + config.AppConfig.AppPort); err != nil {
+		log.Fatalf("❌ Ошибка запуска сервера: %v", err)
+	}
 }

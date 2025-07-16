@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"os"
-	"strings"
 	"sync"
+
+	"go-backend/config"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
@@ -18,51 +18,52 @@ var (
 	once         sync.Once
 )
 
-// InitFirebase инициализирует Firebase SDK через переменные окружения
-func InitFirebase() {
+// InitFirebase — инициализация Firebase на основе config.AppConfig
+func InitFirebase() *auth.Client {
 	once.Do(func() {
-		privateKey := strings.ReplaceAll(os.Getenv("GOOGLE_PRIVATE_KEY"), `\n`, "\n")
-		// Собираем креды из ENV
-		credentials := map[string]string{
-			"type":                        os.Getenv("GOOGLE_TYPE"),
-			"project_id":                  os.Getenv("GOOGLE_PROJECT_ID"),
-			"private_key_id":              os.Getenv("GOOGLE_PRIVATE_KEY_ID"),
-			"private_key":                 privateKey,
-			"client_email":                os.Getenv("GOOGLE_CLIENT_EMAIL"),
-			"client_id":                   os.Getenv("GOOGLE_CLIENT_ID"),
-			"auth_uri":                    os.Getenv("GOOGLE_AUTH_URI"),
-			"token_uri":                   os.Getenv("GOOGLE_TOKEN_URI"),
-			"auth_provider_x509_cert_url": os.Getenv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL"),
-			"client_x509_cert_url":        os.Getenv("GOOGLE_CLIENT_X509_CERT_URL"),
+		// Собираем креды
+		creds := map[string]string{
+			"type":                        config.AppConfig.FirebaseType,
+			"project_id":                  config.AppConfig.FirebaseProjectID,
+			"private_key_id":              config.AppConfig.FirebasePrivateKeyID,
+			"private_key":                 config.AppConfig.FirebasePrivateKey,
+			"client_email":                config.AppConfig.FirebaseClientEmail,
+			"client_id":                   config.AppConfig.FirebaseClientID,
+			"auth_uri":                    config.AppConfig.FirebaseAuthURI,
+			"token_uri":                   config.AppConfig.FirebaseTokenURI,
+			"auth_provider_x509_cert_url": config.AppConfig.FirebaseAuthProviderCertURL,
+			"client_x509_cert_url":        config.AppConfig.FirebaseClientCertURL,
 		}
 
 		// Преобразуем в JSON
-		credJSON, err := json.Marshal(credentials)
+		credJSON, err := json.Marshal(creds)
 		if err != nil {
-			log.Fatalf("Error marshaling Firebase credentials: %v", err)
+			log.Fatalf("❌ Ошибка marshaling Firebase creds: %v", err)
 		}
 
-		// Инициализируем Firebase с JSON
+		// Создаём Firebase App
 		opt := option.WithCredentialsJSON(credJSON)
 		app, err := firebase.NewApp(context.Background(), nil, opt)
 		if err != nil {
-			log.Fatalf("Firebase init error: %v", err)
+			log.Fatalf("❌ Firebase init error: %v", err)
 		}
 
+		// Клиент Auth
 		client, err := app.Auth(context.Background())
 		if err != nil {
-			log.Fatalf("Firebase Auth error: %v", err)
+			log.Fatalf("❌ Firebase Auth error: %v", err)
 		}
 
 		firebaseAuth = client
-		log.Println("✅ Firebase initialized from ENV")
+		log.Println("✅ Firebase успешно инициализирован через config")
 	})
+	return firebaseAuth
 }
 
-// GetFirebaseAuth — безопасный getter
+// GetFirebaseAuth — безопасно возвращает клиента Firebase Auth
 func GetFirebaseAuth() *auth.Client {
 	if firebaseAuth == nil {
-		log.Fatal("❌ Firebase not initialized")
+		log.Fatal("❌ Firebase не инициализирован. Вызови InitFirebase() в main.go")
 	}
 	return firebaseAuth
 }
