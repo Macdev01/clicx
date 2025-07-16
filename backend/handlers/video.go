@@ -20,11 +20,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// ✅ Создать пост с медиа
+// ✅ Создать пост с медиа (только админ)
 func CreatePostWithMedia(c *gin.Context) {
-	user := c.MustGet("user").(models.User)
+	value, _ := c.Get("user")
+	user, _ := value.(*models.User)
 
-	if !user.IsAdmin {
+	if user == nil || !user.IsAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Admins only"})
 		return
 	}
@@ -78,11 +79,9 @@ func CreatePostWithMedia(c *gin.Context) {
 		buf := bytes.NewBuffer(nil)
 		io.Copy(buf, f)
 
-		// ✅ Путь
 		path := fmt.Sprintf("%d/%s", modelProfile.UserID, file.Filename)
 		uploadURL := fmt.Sprintf("https://sg.storage.bunnycdn.com/%s/%s", config.AppConfig.BunnyStorageZone, path)
 
-		// ✅ Загрузка на Bunny
 		req, _ := http.NewRequest("PUT", uploadURL, bytes.NewReader(buf.Bytes()))
 		req.Header.Set("AccessKey", config.AppConfig.BunnyStorageKey)
 		req.Header.Set("Content-Type", "application/octet-stream")
@@ -93,7 +92,6 @@ func CreatePostWithMedia(c *gin.Context) {
 			return
 		}
 
-		// ✅ CDN URL
 		cdnURL := fmt.Sprintf("https://%s/%s", config.AppConfig.BunnyPullZoneHost, path)
 
 		ext := strings.ToLower(filepath.Ext(file.Filename))
@@ -120,9 +118,15 @@ func CreatePostWithMedia(c *gin.Context) {
 	c.JSON(http.StatusOK, post)
 }
 
-// ✅ Загрузить видео для существующего поста
+// ✅ Загрузить видео для существующего поста (без авторизации блокировки)
 func UploadVideo(c *gin.Context) {
-	user := c.MustGet("user").(models.User)
+	value, _ := c.Get("user")
+	user, _ := value.(*models.User)
+
+	ownerID := uint(0)
+	if user != nil {
+		ownerID = user.ID
+	}
 
 	file, err := c.FormFile("video")
 	if err != nil {
@@ -140,7 +144,7 @@ func UploadVideo(c *gin.Context) {
 	buf := bytes.NewBuffer(nil)
 	io.Copy(buf, opened)
 
-	path := fmt.Sprintf("%d/%s", user.ID, file.Filename)
+	path := fmt.Sprintf("%d/%s", ownerID, file.Filename)
 	uploadURL := fmt.Sprintf("https://sg.storage.bunnycdn.com/%s/%s", config.AppConfig.BunnyStorageZone, path)
 
 	req, _ := http.NewRequest("PUT", uploadURL, bytes.NewReader(buf.Bytes()))
@@ -205,7 +209,6 @@ func StreamVideo(c *gin.Context) {
 		return
 	}
 
-	// Генерация токена Bunny
 	expires := time.Now().Add(1 * time.Hour).Unix()
 	urlPath := strings.TrimPrefix(media.URL, fmt.Sprintf("https://%s", config.AppConfig.BunnyPullZoneHost))
 	raw := fmt.Sprintf("%s%s%d", config.AppConfig.BunnyTokenKey, urlPath, expires)
@@ -219,9 +222,11 @@ func StreamVideo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"url": finalURL})
 }
 
-// ✅ Удаление медиа
+// ✅ Удаление медиа (только админ или владелец поста)
 func DeleteVideo(c *gin.Context) {
-	user := c.MustGet("user").(models.User)
+	value, _ := c.Get("user")
+	user, _ := value.(*models.User)
+
 	id := c.Param("id")
 
 	var media models.Media
@@ -236,7 +241,8 @@ func DeleteVideo(c *gin.Context) {
 		return
 	}
 
-	if !user.IsAdmin && post.UserID != user.ID {
+	// Только админ или владелец поста может удалить
+	if user == nil || (!user.IsAdmin && post.UserID != user.ID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
 		return
 	}
