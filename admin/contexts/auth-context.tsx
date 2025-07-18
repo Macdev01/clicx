@@ -35,29 +35,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(
       auth,
       async (user) => {
-        if (user) {
-          // Get the ID token
-          const token = await user.getIdToken()
-          
-          // Set the session cookie
-          const response = await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token }),
-          })
+        try {
+          if (user) {
+            // Get the ID token
+            const token = await user.getIdToken()
+            
+            // Set the session cookie
+            const response = await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ token }),
+            })
 
-          if (!response.ok) {
-            console.error('Failed to set session cookie')
+            if (!response.ok) {
+              console.error('Failed to set session cookie')
+              setUser(null)
+              setLoading(false)
+              return
+            }
+          } else {
+            // Clear the session cookie
+            await fetch('/api/auth/session', { method: 'DELETE' })
           }
-        } else {
-          // Clear the session cookie
-          await fetch('/api/auth/session', { method: 'DELETE' })
-        }
 
-        setUser(user)
-        setLoading(false)
+          setUser(user)
+          setLoading(false)
+        } catch (error) {
+          console.error("Auth state change error:", error)
+          setUser(null)
+          setLoading(false)
+        }
       },
       (error) => {
         console.error("Auth state change error:", error)

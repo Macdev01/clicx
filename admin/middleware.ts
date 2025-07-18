@@ -1,39 +1,32 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth } from '@/shared/config/firebase'
 
-export async function middleware(request: NextRequest) {
-  // Get the current path
-  const path = request.nextUrl.pathname
-
-  // Paths that don't require authentication
-  const isPublicPath = path.startsWith('/auth/')
-
-  // Get the token from the session cookie
-  const token = request.cookies.get('__session')?.value
-
-  // If the user is not authenticated and trying to access a protected route
-  if (!token && !isPublicPath) {
+export function middleware(request: NextRequest) {
+  const session = request.cookies.get('__session')
+  const isSignInPage = request.nextUrl.pathname === '/auth/signin'
+  
+  // If there's no session and the page is not signin, redirect to signin
+  if (!session && !isSignInPage) {
     return NextResponse.redirect(new URL('/auth/signin', request.url))
   }
 
-  // If the user is authenticated and trying to access auth pages
-  if (token && isPublicPath) {
+  // If there's a session and user is on signin page, redirect to home
+  if (session && isSignInPage) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
   return NextResponse.next()
 }
 
-// Configure which paths the middleware should run on
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
+     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 } 
