@@ -3,14 +3,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Image from 'next/image'
-
-interface Comment {
-  id: number
-  post_id: string
-  user_id: number
-  text: string
-  created_at: string
-}
+import PostEditForm from './components/PostEditForm'
 
 interface Media {
   id: number
@@ -24,7 +17,6 @@ interface Media {
 
 interface User {
   ID: number
-  name: string
   email: string
   nickname: string
   balance: number
@@ -48,7 +40,6 @@ interface Post {
   user: User
   model: Model
   media: Media[]
-  comments: Comment[] | null
   isPurchased: boolean
 }
 
@@ -56,7 +47,6 @@ export default function PostsPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [editingPost, setEditingPost] = useState<Post | null>(null)
 
   useEffect(() => {
@@ -74,11 +64,39 @@ export default function PostsPage() {
     }
   }
 
-  const handleEdit = async (postId: string) => {
+  const handleEdit = (postId: string) => {
     const postToEdit = posts.find(post => post.id === postId)
     if (postToEdit) {
       setEditingPost(postToEdit)
-      // Implement edit modal/form here
+    }
+  }
+
+  const handleSaveEdit = async (updatedPost: Post) => {
+    try {
+      const response = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/posts/${updatedPost.id}`,
+        updatedPost
+      )
+      
+      // Update posts list with the response data
+      const savedPost = response.data
+      const updatedPosts = posts.map(post => 
+        post.id === savedPost.id ? savedPost : post
+      )
+      setPosts(updatedPosts)
+      
+      setEditingPost(null)
+      window.location.reload()
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+          throw new Error(error.response.data?.error || 'Invalid input data')
+        } else {
+          throw new Error('Failed to update post')
+        }
+      } else {
+        throw new Error('Failed to update post')
+      }
     }
   }
 
@@ -87,7 +105,9 @@ export default function PostsPage() {
 
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`)
-      setPosts(posts.filter(post => post.id !== postId))
+      const updatedPosts = posts.filter(post => post.id !== postId)
+      setPosts(updatedPosts)
+      window.location.reload()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete post')
     }
@@ -112,6 +132,7 @@ export default function PostsPage() {
           </button>
         </div>
       </div>
+
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
@@ -119,7 +140,7 @@ export default function PostsPage() {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 ">
                       ID
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -155,7 +176,7 @@ export default function PostsPage() {
                         {post.text.length > 50 ? `${post.text.substring(0, 50)}...` : post.text}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {post.user.nickname} ({post.user.name})
+                        {post.user.nickname}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {post.isPremium ? '✓' : '✗'}
@@ -165,7 +186,7 @@ export default function PostsPage() {
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {post.media && post.media.length > 0 && (
-                          <div className="relative h-8 w-8">
+                          <div className="relative h-8 w-12">
                             <Image
                               src={post.media[0].cover}
                               alt="Media cover"
@@ -200,6 +221,14 @@ export default function PostsPage() {
           </div>
         </div>
       </div>
+
+      {editingPost && (
+        <PostEditForm
+          post={editingPost}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingPost(null)}
+        />
+      )}
     </div>
   )
 } 

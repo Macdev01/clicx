@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Image from 'next/image'
+import ModelEditForm from './components/ModelEditForm'
 
-interface ModelProfile {
+interface Model {
   id: number
   user_id: number
   bio: string
@@ -12,11 +13,10 @@ interface ModelProfile {
 }
 
 export default function ModelsPage() {
-  const [models, setModels] = useState<ModelProfile[]>([])
+  const [models, setModels] = useState<Model[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [editingModel, setEditingModel] = useState<ModelProfile | null>(null)
+  const [editingModel, setEditingModel] = useState<Model | null>(null)
 
   useEffect(() => {
     fetchModels()
@@ -33,11 +33,39 @@ export default function ModelsPage() {
     }
   }
 
-  const handleEdit = async (modelId: number) => {
+  const handleEdit = (modelId: number) => {
     const modelToEdit = models.find(model => model.id === modelId)
     if (modelToEdit) {
       setEditingModel(modelToEdit)
-      // Implement edit modal/form here
+    }
+  }
+
+  const handleSaveEdit = async (updatedModel: Model) => {
+    try {
+      const response = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/models/${updatedModel.id}`,
+        updatedModel
+      )
+      
+      // Update models list with the response data
+      const savedModel = response.data
+      const updatedModels = models.map(model => 
+        model.id === savedModel.id ? savedModel : model
+      )
+      setModels(updatedModels)
+      
+      setEditingModel(null)
+      window.location.reload()
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+          throw new Error(error.response.data?.error || 'Invalid input data')
+        } else {
+          throw new Error('Failed to update model profile')
+        }
+      } else {
+        throw new Error('Failed to update model profile')
+      }
     }
   }
 
@@ -46,7 +74,9 @@ export default function ModelsPage() {
 
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/models/${modelId}`)
-      setModels(models.filter(model => model.id !== modelId))
+      const updatedModels = models.filter(model => model.id !== modelId)
+      setModels(updatedModels)
+      window.location.reload()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete model profile')
     }
@@ -71,6 +101,7 @@ export default function ModelsPage() {
           </button>
         </div>
       </div>
+
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
@@ -106,7 +137,7 @@ export default function ModelsPage() {
                               src={model.banner}
                               alt="Banner"
                               fill
-                              className="rounded-full object-cover"
+                              className="rounded object-cover"
                             />
                           </div>
                         )}
@@ -133,6 +164,14 @@ export default function ModelsPage() {
           </div>
         </div>
       </div>
+
+      {editingModel && (
+        <ModelEditForm
+          model={editingModel}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingModel(null)}
+        />
+      )}
     </div>
   )
 } 
