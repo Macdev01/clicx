@@ -16,8 +16,8 @@ export default function HomePage() {
       </div>
       <div className="relative">
         <Image
-          src="/fashion-illustration.jpg"
-          alt="Fashion Illustration"
+          src="/woman.png"
+          alt="women"
           width={300}
           height={600}
           priority
