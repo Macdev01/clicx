@@ -4,17 +4,52 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Image from 'next/image'
 
-interface Post {
+interface Comment {
   id: number
-  title: string
-  content: string
+  post_id: string
   user_id: number
+  text: string
   created_at: string
-  updated_at: string
-  media_url: string
-  user: {
-    username: string
-  }
+}
+
+interface Media {
+  id: number
+  post_id: string
+  type: string
+  url: string
+  cover: string
+  duration: number
+  createdAt: string
+}
+
+interface User {
+  ID: number
+  name: string
+  email: string
+  nickname: string
+  balance: number
+  avatarUrl: string
+  isAdmin: boolean
+}
+
+interface Model {
+  id: number
+  user_id: number
+  bio: string
+  banner: string
+}
+
+interface Post {
+  id: string
+  text: string
+  isPremium: boolean
+  published_time: string
+  likes_count: number
+  user: User
+  model: Model
+  media: Media[]
+  comments: Comment[] | null
+  isPurchased: boolean
 }
 
 export default function PostsPage() {
@@ -39,7 +74,7 @@ export default function PostsPage() {
     }
   }
 
-  const handleEdit = async (postId: number) => {
+  const handleEdit = async (postId: string) => {
     const postToEdit = posts.find(post => post.id === postId)
     if (postToEdit) {
       setEditingPost(postToEdit)
@@ -47,7 +82,7 @@ export default function PostsPage() {
     }
   }
 
-  const handleDelete = async (postId: number) => {
+  const handleDelete = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return
 
     try {
@@ -88,16 +123,22 @@ export default function PostsPage() {
                       ID
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Title
+                      Text
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Author
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Premium
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Likes
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Media
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Created At
+                      Published
                     </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
@@ -110,14 +151,24 @@ export default function PostsPage() {
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                         {post.id}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{post.title}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{post.user.username}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {post.media_url && (
+                        {post.text.length > 50 ? `${post.text.substring(0, 50)}...` : post.text}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {post.user.nickname} ({post.user.name})
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {post.isPremium ? '✓' : '✗'}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {post.likes_count}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {post.media && post.media.length > 0 && (
                           <div className="relative h-8 w-8">
                             <Image
-                              src={post.media_url}
-                              alt="Media"
+                              src={post.media[0].cover}
+                              alt="Media cover"
                               fill
                               className="rounded object-cover"
                             />
@@ -125,7 +176,7 @@ export default function PostsPage() {
                         )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(post.created_at).toLocaleDateString()}
+                        {new Date(post.published_time).toLocaleDateString()}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <button

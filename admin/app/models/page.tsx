@@ -9,13 +9,6 @@ interface ModelProfile {
   user_id: number
   bio: string
   banner: string
-  created_at: string
-  updated_at: string
-  user: {
-    id: number
-    username: string
-    email: string
-  }
 }
 
 export default function ModelsPage() {
@@ -89,12 +82,6 @@ export default function ModelsPage() {
                       ID
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Username
-                    </th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Email
-                    </th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Bio
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -111,8 +98,6 @@ export default function ModelsPage() {
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                         {model.id}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{model.user.username}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{model.user.email}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{model.bio}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {model.banner && (

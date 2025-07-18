@@ -2,30 +2,59 @@
 
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import Image from 'next/image'
+import UserEditForm from './components/UserEditForm'
 
 interface User {
+  ID: number
+  email: string
+  nickname: string
+  balance: number
+  avatarUrl: string
+  isAdmin: boolean
+}
+
+// Backend expects different field names
+interface BackendUser {
   id: number
   email: string
-  username: string
-  created_at: string
-  updated_at: string
+  nickname: string
+  balance: number
+  avatarUrl: string
+  isAdmin: boolean
 }
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [searchTerm, setSearchTerm] = useState('')
   const [editingUser, setEditingUser] = useState<User | null>(null)
 
   useEffect(() => {
     fetchUsers()
   }, [])
 
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredUsers(users)
+      return
+    }
+
+    const searchTermLower = searchTerm.toLowerCase()
+    const filtered = users.filter(user => 
+      user.nickname.toLowerCase().includes(searchTermLower) ||
+      user.email.toLowerCase().includes(searchTermLower)
+    )
+    setFilteredUsers(filtered)
+  }, [searchTerm, users])
+
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`)
       setUsers(response.data)
+      setFilteredUsers(response.data)
       setLoading(false)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to fetch users')
@@ -33,11 +62,61 @@ export default function UsersPage() {
     }
   }
 
-  const handleEdit = async (userId: number) => {
-    const userToEdit = users.find(user => user.id === userId)
+  const handleEdit = (userId: number) => {
+    const userToEdit = users.find(user => user.ID === userId)
     if (userToEdit) {
       setEditingUser(userToEdit)
-      // Implement edit modal/form here
+    }
+  }
+
+  const handleSaveEdit = async (updatedUser: User) => {
+    try {
+      // Convert frontend model to backend model
+      const backendUser: BackendUser = {
+        id: updatedUser.ID,
+        email: updatedUser.email,
+        nickname: updatedUser.nickname,
+        balance: Number(updatedUser.balance), // Ensure it's a number
+        avatarUrl: updatedUser.avatarUrl,
+        isAdmin: updatedUser.isAdmin
+      }
+
+      const response = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/${updatedUser.ID}`,
+        backendUser
+      )
+      
+      // Update both users and filtered users with the response data
+      const savedUser: User = {
+        ...response.data,
+        ID: response.data.id // Convert back to frontend model
+      }
+
+      const updatedUsers = users.map(user => 
+        user.ID === savedUser.ID ? savedUser : user
+      )
+      setUsers(updatedUsers)
+      setFilteredUsers(prevFiltered => 
+        prevFiltered.map(user => 
+          user.ID === savedUser.ID ? savedUser : user
+        )
+      )
+      
+      setEditingUser(null)
+      window.location.reload()
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        // Handle specific error cases
+        if (error.response?.status === 400) {
+          throw new Error(error.response.data?.error || 'Invalid input data')
+        } else if (error.response?.status === 409) {
+          throw new Error('Email or nickname already exists')
+        } else {
+          throw new Error('Failed to update user')
+        }
+      } else {
+        throw new Error('Failed to update user')
+      }
     }
   }
 
@@ -46,7 +125,10 @@ export default function UsersPage() {
 
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`)
-      setUsers(users.filter(user => user.id !== userId))
+      const updatedUsers = users.filter(user => user.ID !== userId)
+      setUsers(updatedUsers)
+      setFilteredUsers(updatedUsers)
+      window.location.reload()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete user')
     }
@@ -71,6 +153,29 @@ export default function UsersPage() {
           </button>
         </div>
       </div>
+
+      <div className="mt-4 max-w-md">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by nickname, or email..."
+            className="block w-full rounded-md border-gray-300 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          />
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+            <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        {searchTerm && (
+          <p className="mt-2 text-sm text-gray-500">
+            Found {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
+          </p>
+        )}
+      </div>
+
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
@@ -82,13 +187,19 @@ export default function UsersPage() {
                       ID
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Username
+                      Avatar
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Nickname
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Email
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Created At
+                      Balance
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Admin
                     </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
@@ -96,25 +207,40 @@ export default function UsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {users.map((user) => (
-                    <tr key={user.id}>
+                  {filteredUsers.map((user) => (
+                    <tr key={user.ID}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        {user.id}
+                        {user.ID}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.username}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {user.avatarUrl && (
+                          <div className="relative h-8 w-8">
+                            <Image
+                              src={user.avatarUrl}
+                              alt={`avatar`}
+                              fill
+                              className="rounded-full object-cover"
+                            />
+                          </div>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.nickname}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.email}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(user.created_at).toLocaleDateString()}
+                        {user.balance}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {user.isAdmin ? '✓' : '✗'}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <button
-                          onClick={() => handleEdit(user.id)}
+                          onClick={() => handleEdit(user.ID)}
                           className="text-indigo-600 hover:text-indigo-900 mr-4"
                         >
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(user.id)}
+                          onClick={() => handleDelete(user.ID)}
                           className="text-red-600 hover:text-red-900"
                         >
                           Delete
@@ -128,6 +254,14 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
+
+      {editingUser && (
+        <UserEditForm
+          user={editingUser}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingUser(null)}
+        />
+      )}
     </div>
   )
 } 

@@ -16,7 +16,7 @@ import (
 func truncateAllTables() error {
 	err := database.DB.Exec(`
 		TRUNCATE TABLE 
-			admins, users, model_profiles, posts, orders, media, comments 
+			users, model_profiles, posts, orders, media, comments 
 		RESTART IDENTITY CASCADE
 	`).Error
 	if err != nil {
