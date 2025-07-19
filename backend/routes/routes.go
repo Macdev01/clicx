@@ -27,6 +27,7 @@ func InitRoutes(r *gin.Engine) {
 		posts.POST("", handlers.CreatePost)
 		posts.PUT("/:id", handlers.UpdatePost)
 		posts.DELETE("/:id", handlers.DeletePost)
+		// Лайки для постов
 		posts.POST("/:id/like", middleware.UserMiddlewareGin(), handlers.ToggleLikePost)
 	}
 
@@ -57,6 +58,13 @@ func InitRoutes(r *gin.Engine) {
 		videos.GET("/:id/stream", handlers.StreamVideo) // Получение ссылки для стрима
 		videos.GET("/:id", handlers.GetMediaByID)       // Получить медиа по ID
 		videos.DELETE("/:id", handlers.DeleteVideo)     // Удалить видео
+	}
+
+	// Покупка контента
+	purchases := r.Group("/purchases", middleware.UserMiddlewareGin())
+	{
+		purchases.POST("", handlers.BuyContent)  // Покупка
+		purchases.GET("", handlers.GetPurchases) // История покупок
 	}
 
 	// Админские маршруты
