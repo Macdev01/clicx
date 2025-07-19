@@ -67,6 +67,22 @@ CREATE TABLE orders (
     summ INTEGER NOT NULL
 );
 
+-- PURCHASES
+CREATE TABLE purchases (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- SAVED POSTS
+CREATE TABLE saved_posts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT now()
+);
+
 -- ✅ INDEXES for performance
 CREATE INDEX idx_posts_user_id ON posts(user_id);
 CREATE INDEX idx_posts_model_id ON posts(model_id);
@@ -74,3 +90,5 @@ CREATE INDEX idx_media_post_id ON media(post_id);
 CREATE INDEX idx_comments_post_id ON comments(post_id);
 CREATE INDEX idx_likes_post_id ON likes(post_id);
 CREATE INDEX idx_orders_user_id ON orders(user_id);
+CREATE INDEX idx_purchases_user_id ON purchases(user_id);
+CREATE INDEX idx_saved_posts_user_id ON saved_posts(user_id);
