@@ -70,6 +70,11 @@ func InitRoutes(r *gin.Engine) {
 		purchases.GET("", handlers.GetPurchases) // История покупок
 	}
 
+	r.POST("/follow/:id", middleware.UserMiddlewareGin(), handlers.FollowUser)
+	r.DELETE("/follow/:id", middleware.UserMiddlewareGin(), handlers.UnfollowUser)
+	r.GET("/followers", middleware.UserMiddlewareGin(), handlers.GetFollowers)
+	r.GET("/referrals", middleware.UserMiddlewareGin(), handlers.GetReferrals)
+
 	// Админские маршруты
 	admin := r.Group("/admin", middleware.UserMiddlewareGin())
 	{
