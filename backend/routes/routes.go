@@ -55,6 +55,7 @@ func InitRoutes(r *gin.Engine) {
 	videos := r.Group("/videos", middleware.UserMiddlewareGin())
 	{
 		videos.POST("/upload", handlers.UploadVideo)    // Загрузка видео для поста
+		videos.GET("/user", handlers.GetUserVideos)     // Контент текущего пользователя
 		videos.GET("/:id/stream", handlers.StreamVideo) // Получение ссылки для стрима
 		videos.GET("/:id", handlers.GetMediaByID)       // Получить медиа по ID
 		videos.DELETE("/:id", handlers.DeleteVideo)     // Удалить видео

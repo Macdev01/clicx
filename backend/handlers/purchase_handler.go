@@ -65,3 +65,10 @@ func BuyContent(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Content purchased successfully"})
 }
+
+// GetPurchases returns a list of purchases for the current user.
+// This stub implementation simply returns an empty list until the feature is
+// fully implemented.
+func GetPurchases(c *gin.Context) {
+	c.JSON(http.StatusOK, []models.Purchase{})
+}

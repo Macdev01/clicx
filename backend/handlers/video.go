@@ -266,3 +266,26 @@ func DeleteVideo(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully"})
 }
+
+// GetUserVideos returns all posts with media uploaded by the current user
+func GetUserVideos(c *gin.Context) {
+	value, _ := c.Get("user")
+	user, _ := value.(*models.User)
+
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var posts []models.Post
+	if err := database.DB.Preload("Media").
+		Preload("ModelProfile").
+		Preload("User").
+		Where("user_id = ?", user.ID).
+		Find(&posts).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch content"})
+		return
+	}
+
+	c.JSON(http.StatusOK, posts)
+}
