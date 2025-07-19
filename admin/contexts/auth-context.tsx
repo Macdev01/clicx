@@ -41,12 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const token = await user.getIdToken()
             
             // Set the session cookie
-            const response = await fetch('/api/auth/session', {
+            const response = await fetch(`/api/auth/session`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({ token }),
+              credentials: 'include', // Important for cookies
             })
 
             if (!response.ok) {
@@ -63,7 +64,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           } else {
             // Clear the session cookie
-            await fetch('/api/auth/session', { method: 'DELETE' })
+            await fetch(`/api/auth/session`, {
+              method: 'DELETE',
+              credentials: 'include', // Important for cookies
+            })
             setUser(null)
           }
           setLoading(false)
