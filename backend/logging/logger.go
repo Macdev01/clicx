@@ -1,23 +1,13 @@
 package logging
 
-import (
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-)
+import "go.uber.org/zap"
 
 // InitLogger создает zap.Logger для dev или prod
 func InitLogger(env string) (*zap.Logger, error) {
-	var cfg zap.Config
-
+	level := zap.InfoLevel
 	if env == "dev" {
-		// Development mode: цветной вывод
-		cfg = zap.NewDevelopmentConfig()
-		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	} else {
-		// Production mode: JSON формат
-		cfg = zap.NewProductionConfig()
+		level = zap.DebugLevel
 	}
-
-	cfg.OutputPaths = []string{"stdout"} // По умолчанию вывод в консоль
-	return cfg.Build()
+	core := NewDBCore(level)
+	return zap.New(core), nil
 }

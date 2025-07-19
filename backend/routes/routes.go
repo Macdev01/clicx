@@ -5,9 +5,13 @@ import (
 	"go-backend/middleware"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func InitRoutes(r *gin.Engine) {
+	// Swagger documentation
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// Users
 	users := r.Group("/users")
 	{
@@ -92,4 +96,5 @@ func InitRoutes(r *gin.Engine) {
 	// Технические маршруты
 	r.GET("/migrate", handlers.MigrateHandler)
 	r.GET("/seed", handlers.SeedHandler)
+	r.GET("/metrics", handlers.GetMetrics)
 }
