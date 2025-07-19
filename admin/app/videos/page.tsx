@@ -110,8 +110,8 @@ export default function VideosPage() {
                         {video.id}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.title}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.userId}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.modelId}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.user_id}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.model_id}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
                       </td>
@@ -127,7 +127,7 @@ export default function VideosPage() {
                         )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(video.createdAt).toLocaleDateString()}
+                        {new Date(video.created_at).toLocaleDateString()}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <button

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { externalApi } from '@/shared/config/api'
+import { externalApi } from '../../../shared/config/api'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const response = await externalApi.get('/posts')
     return NextResponse.json(response.data)

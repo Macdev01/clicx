@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { externalApi } from '@/shared/config/api'
+import { externalApi } from '../../../../shared/config/api'
 
-// Get a specific user
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const response = await externalApi.get(`/users/${params.id}`)
     return NextResponse.json(response.data)
   } catch (error) {
@@ -19,12 +19,12 @@ export async function GET(
   }
 }
 
-// Update a user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const body = await request.json()
     const response = await externalApi.put(`/users/${params.id}`, body)
     return NextResponse.json(response.data)
@@ -37,12 +37,12 @@ export async function PUT(
   }
 }
 
-// Delete a user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const response = await externalApi.delete(`/users/${params.id}`)
     return NextResponse.json(response.data)
   } catch (error) {
