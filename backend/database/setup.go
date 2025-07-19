@@ -45,6 +45,8 @@ func MigrateAll() error {
 		&models.Order{},
 		&models.Payment{},
 		&models.Like{},
+		&models.Purchase{},
+		&models.SavedPost{},
 	)
 	if err != nil {
 		return fmt.Errorf("ошибка миграции: %w", err)

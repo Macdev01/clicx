@@ -14,6 +14,8 @@ func InitRoutes(r *gin.Engine) {
 		users.GET("", handlers.GetUsers)
 		users.GET("/:id", handlers.GetUserByID)
 		users.GET("/:id/model-profile", handlers.GetModelProfileByUserID)
+		users.GET("/:id/saved-posts", handlers.GetSavedPosts)
+		users.GET("/:id/purchased-posts", handlers.GetPurchasedPosts)
 		users.POST("", handlers.CreateUser)
 		users.PUT("/:id", handlers.UpdateUser)
 		users.DELETE("/:id", handlers.DeleteUser)
@@ -29,6 +31,7 @@ func InitRoutes(r *gin.Engine) {
 		posts.DELETE("/:id", handlers.DeletePost)
 		// Лайки для постов
 		posts.POST("/:id/like", middleware.UserMiddlewareGin(), handlers.ToggleLikePost)
+		posts.POST("/:id/save", middleware.UserMiddlewareGin(), handlers.ToggleSavePost)
 	}
 
 	// Orders
