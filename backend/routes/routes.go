@@ -66,8 +66,9 @@ func InitRoutes(r *gin.Engine) {
 	// Покупка контента
 	purchases := r.Group("/purchases", middleware.UserMiddlewareGin())
 	{
-		purchases.POST("", handlers.BuyContent)  // Покупка
-		purchases.GET("", handlers.GetPurchases) // История покупок
+		purchases.POST("", handlers.BuyContent)                   // Покупка
+		purchases.GET("", handlers.GetPurchases)                  // История покупок
+		purchases.PUT("/:id/complete", handlers.CompletePurchase) // Завершить покупку
 	}
 
 	r.POST("/follow/:id", middleware.UserMiddlewareGin(), handlers.FollowUser)
