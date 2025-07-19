@@ -11,7 +11,7 @@ import (
 func GetCurrentUser(c *gin.Context) {
 	val, ok := c.Get("user")
 	if !ok || val == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 

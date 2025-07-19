@@ -26,9 +26,9 @@ func InitRoutes(r *gin.Engine) {
 	{
 		posts.GET("", handlers.GetPosts)
 		posts.GET("/:id", handlers.GetPostByID)
-		posts.POST("", handlers.CreatePost)
-		posts.PUT("/:id", handlers.UpdatePost)
-		posts.DELETE("/:id", handlers.DeletePost)
+		posts.POST("", middleware.UserMiddlewareGin(), handlers.CreatePost)
+		posts.PUT("/:id", middleware.UserMiddlewareGin(), handlers.UpdatePost)
+		posts.DELETE("/:id", middleware.UserMiddlewareGin(), handlers.DeletePost)
 		// Лайки для постов
 		posts.POST("/:id/like", middleware.UserMiddlewareGin(), handlers.ToggleLikePost)
 		posts.POST("/:id/save", middleware.UserMiddlewareGin(), handlers.ToggleSavePost)
