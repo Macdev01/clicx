@@ -1,20 +1,49 @@
 package handlers
 
 import (
-	"net/http"
+	"go-backend/database"
+	"go-backend/models"
+	"go-backend/utils"
 
 	"github.com/gin-gonic/gin"
-	"go-backend/models"
 )
 
-// GetCurrentUser returns the authenticated user from context.
-func GetCurrentUser(c *gin.Context) {
-	val, ok := c.Get("user")
-	if !ok || val == nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+func Register(c *gin.Context) {
+	var input struct {
+		Name         string `json:"name"`
+		Email        string `json:"email"`
+		Nickname     string `json:"nickname"`
+		Password     string `json:"password"`
+		ReferralCode string `json:"referral_code"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	user, _ := val.(*models.User)
-	c.JSON(http.StatusOK, user)
+	user := models.User{
+		Name:     input.Name,
+		Email:    input.Email,
+		Nickname: input.Nickname,
+		Password: input.Password, // хэшируй!
+	}
+
+	if err := database.DB.Create(&user).Error; err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Генерация referral_code
+	user.ReferralCode = utils.GenerateReferralCode(int(user.ID))
+
+	// Проверка реферального кода
+	if input.ReferralCode != "" {
+		var referrer models.User
+		if err := database.DB.Where("referral_code = ?", input.ReferralCode).First(&referrer).Error; err == nil {
+			user.ReferredBy = &referrer.ID
+		}
+	}
+
+	database.DB.Save(&user)
+	c.JSON(200, gin.H{"message": "User registered", "user": user})
 }

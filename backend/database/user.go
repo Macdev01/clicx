@@ -29,7 +29,7 @@ func CreateUser(email string, name string, avatar string, refCode string) (*mode
 		Name:         name,
 		AvatarURL:    avatar,
 		Nickname:     generateNickname(email),
-		ReferralCode: utils.GenerateReferralCode(),
+		ReferralCode: utils.GenerateReferralCode(8),
 	}
 	if err := DB.Create(user).Error; err != nil {
 		return nil, err

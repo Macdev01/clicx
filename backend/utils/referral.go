@@ -1,15 +1,7 @@
 package utils
 
-import (
-	"crypto/rand"
-	"encoding/hex"
-)
+import "fmt"
 
-// GenerateReferralCode returns a random referral code.
-func GenerateReferralCode() string {
-	b := make([]byte, 4)
-	if _, err := rand.Read(b); err != nil {
-		return ""
-	}
-	return hex.EncodeToString(b)
+func GenerateReferralCode(userID int) string {
+	return fmt.Sprintf("REF%06d", userID) // пример: REF000123
 }

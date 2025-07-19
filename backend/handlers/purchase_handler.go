@@ -11,8 +11,7 @@ import (
 )
 
 type PurchaseRequest struct {
-	UserID uint   `json:"user_id"`
-	PostID string `json:"post_id"`
+	PostID uuid.UUID `json:"post_id" binding:"required"`
 }
 
 func BuyContent(c *gin.Context) {
@@ -22,35 +21,43 @@ func BuyContent(c *gin.Context) {
 		return
 	}
 
-	var user models.User
+	// Получаем user из контекста (предполагаем, что в middleware добавлен user)
+	user := c.MustGet("user").(models.User)
+
 	var post models.Post
-
-	// Найдем пользователя и пост
-	if err := database.DB.First(&user, req.UserID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		return
-	}
-
-	postUUID, err := uuid.Parse(req.PostID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post_id"})
-		return
-	}
-
-	if err := database.DB.First(&post, "id = ?", postUUID).Error; err != nil {
+	if err := database.DB.First(&post, "id = ?", req.PostID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
 
-	// Транзакция: сохраняем покупку и при необходимости списываем баланс.
-	err = database.DB.Transaction(func(tx *gorm.DB) error {
-		if user.Balance > 0 {
-			user.Balance -= 1 // Placeholder price
-			if err := tx.Save(&user).Error; err != nil {
-				return err
-			}
+	// Проверка, что контент премиум
+	if !post.IsPremium {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "This content is free"})
+		return
+	}
+
+	// Проверка на повторную покупку
+	var existingPurchase models.Purchase
+	if err := database.DB.First(&existingPurchase, "user_id = ? AND post_id = ?", user.ID, post.ID).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Content already purchased"})
+		return
+	}
+
+	// Проверка баланса
+	if user.Balance < post.Price {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient funds"})
+		return
+	}
+
+	// Транзакция
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		// Списываем деньги
+		user.Balance -= post.Price
+		if err := tx.Save(&user).Error; err != nil {
+			return err
 		}
 
+		// Создаём запись о покупке
 		purchase := models.Purchase{
 			UserID: user.ID,
 			PostID: post.ID,
@@ -70,18 +77,35 @@ func BuyContent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Content purchased successfully"})
 }
 
-// GetPurchases returns a list of purchases.
+// GetPurchases возвращает список купленных постов для текущего пользователя
 func GetPurchases(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
 	var purchases []models.Purchase
-	if err := database.DB.Find(&purchases).Error; err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+	if err := database.DB.Where("user_id = ?", user.ID).Find(&purchases).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load purchases"})
 		return
 	}
-	c.JSON(http.StatusOK, purchases)
+
+	// Если нужно вернуть полные посты
+	var posts []models.Post
+	postIDs := make([]string, 0, len(purchases))
+	for _, p := range purchases {
+		postIDs = append(postIDs, p.PostID.String())
+	}
+
+	if len(postIDs) > 0 {
+		if err := database.DB.Preload("Media").Preload("ModelProfile").Find(&posts, "id IN ?", postIDs).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load posts"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"purchases": posts,
+	})
 }
 
-// CompletePurchase marks a purchase as completed.
 func CompletePurchase(c *gin.Context) {
 	id := c.Param("id")
 

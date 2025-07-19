@@ -12,6 +12,7 @@ type Post struct {
 	IsPremium   bool      `json:"isPremium"`
 	PublishedAt time.Time `json:"published_time"`
 	LikesCount  int       `json:"likes_count"`
+	Price       float64   `json:"price"`
 
 	UserID       uint         `json:"-"`
 	User         User         `json:"user"`
@@ -20,6 +21,4 @@ type Post struct {
 	Media        []Media      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE" json:"media"`
 	Comments     []Comment    `gorm:"foreignKey:PostID" json:"comments"`
 	IsPurchased  bool         `gorm:"-" json:"isPurchased"`
-
-	CreatedAt time.Time `gorm:"-" json:"-"`
 }
