@@ -30,11 +30,12 @@ func AuthMiddleware() gin.HandlerFunc {
 		email, _ := decoded.Claims["email"].(string)
 		name, _ := decoded.Claims["name"].(string)
 		avatar, _ := decoded.Claims["picture"].(string)
+		refCode := c.GetHeader("X-Referral-Code")
 
 		user, err := database.GetUserByEmail(email)
 		if err != nil {
 			if err == database.ErrUserNotFound {
-				user, err = database.CreateUser(email, name, avatar)
+				user, err = database.CreateUser(email, name, avatar, refCode)
 				if err != nil {
 					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 					return

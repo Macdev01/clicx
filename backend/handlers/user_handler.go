@@ -3,6 +3,7 @@ package handlers
 import (
 	"go-backend/database"
 	"go-backend/models"
+	"go-backend/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	user.ReferralCode = utils.GenerateReferralCode()
 	if err := database.DB.Create(&user).Error; err != nil {
 		c.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
