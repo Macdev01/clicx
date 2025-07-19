@@ -1,28 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import Image from 'next/image'
 import UserEditForm from './components/UserEditForm'
-
-interface User {
-  ID: number
-  email: string
-  nickname: string
-  balance: number
-  avatarUrl: string
-  isAdmin: boolean
-}
-
-// Backend expects different field names
-interface BackendUser {
-  id: number
-  email: string
-  nickname: string
-  balance: number
-  avatarUrl: string
-  isAdmin: boolean
-}
+import { userService, type User } from '@/services/users'
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -45,16 +26,17 @@ export default function UsersPage() {
     const searchTermLower = searchTerm.toLowerCase()
     const filtered = users.filter(user => 
       user.nickname.toLowerCase().includes(searchTermLower) ||
-      user.email.toLowerCase().includes(searchTermLower)
+      user.email.toLowerCase().includes(searchTermLower) ||
+      user.name.toLowerCase().includes(searchTermLower)
     )
     setFilteredUsers(filtered)
   }, [searchTerm, users])
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`)
-      setUsers(response.data)
-      setFilteredUsers(response.data)
+      const data = await userService.getUsers()
+      setUsers(data)
+      setFilteredUsers(data)
       setLoading(false)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to fetch users')
@@ -71,27 +53,8 @@ export default function UsersPage() {
 
   const handleSaveEdit = async (updatedUser: User) => {
     try {
-      // Convert frontend model to backend model
-      const backendUser: BackendUser = {
-        id: updatedUser.ID,
-        email: updatedUser.email,
-        nickname: updatedUser.nickname,
-        balance: Number(updatedUser.balance), // Ensure it's a number
-        avatarUrl: updatedUser.avatarUrl,
-        isAdmin: updatedUser.isAdmin
-      }
-
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/${updatedUser.ID}`,
-        backendUser
-      )
+      const savedUser = await userService.updateUser(updatedUser.ID, updatedUser)
       
-      // Update both users and filtered users with the response data
-      const savedUser: User = {
-        ...response.data,
-        ID: response.data.id // Convert back to frontend model
-      }
-
       const updatedUsers = users.map(user => 
         user.ID === savedUser.ID ? savedUser : user
       )
@@ -103,20 +66,8 @@ export default function UsersPage() {
       )
       
       setEditingUser(null)
-      window.location.reload()
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        // Handle specific error cases
-        if (error.response?.status === 400) {
-          throw new Error(error.response.data?.error || 'Invalid input data')
-        } else if (error.response?.status === 409) {
-          throw new Error('Email or nickname already exists')
-        } else {
-          throw new Error('Failed to update user')
-        }
-      } else {
-        throw new Error('Failed to update user')
-      }
+      throw new Error(error instanceof Error ? error.message : 'Failed to update user')
     }
   }
 
@@ -124,11 +75,10 @@ export default function UsersPage() {
     if (!confirm('Are you sure you want to delete this user?')) return
 
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`)
+      await userService.deleteUser(userId)
       const updatedUsers = users.filter(user => user.ID !== userId)
       setUsers(updatedUsers)
       setFilteredUsers(updatedUsers)
-      window.location.reload()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete user')
     }
@@ -160,7 +110,7 @@ export default function UsersPage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by nickname, or email..."
+            placeholder="Search by name, nickname, or email..."
             className="block w-full rounded-md border-gray-300 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -190,6 +140,9 @@ export default function UsersPage() {
                       Avatar
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Name
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Nickname
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -217,17 +170,18 @@ export default function UsersPage() {
                           <div className="relative h-8 w-8">
                             <Image
                               src={user.avatarUrl}
-                              alt={`avatar`}
+                              alt={`${user.name}'s avatar`}
                               fill
                               className="rounded-full object-cover"
                             />
                           </div>
                         )}
                       </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.name}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.nickname}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.email}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {user.balance}
+                        {user.balance.toFixed(2)}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {user.isAdmin ? '✓' : '✗'}

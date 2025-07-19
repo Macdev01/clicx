@@ -1,16 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import Image from 'next/image'
 import ModelEditForm from './components/ModelEditForm'
-
-interface Model {
-  id: number
-  user_id: number
-  bio: string
-  banner: string
-}
+import { modelService, type Model } from '@/services/models'
 
 export default function ModelsPage() {
   const [models, setModels] = useState<Model[]>([])
@@ -24,8 +17,8 @@ export default function ModelsPage() {
 
   const fetchModels = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/models`)
-      setModels(response.data)
+      const data = await modelService.getModels()
+      setModels(data)
       setLoading(false)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to fetch models')
@@ -42,43 +35,31 @@ export default function ModelsPage() {
 
   const handleSaveEdit = async (updatedModel: Model) => {
     try {
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/models/${updatedModel.id}`,
-        updatedModel
-      )
+      const savedModel = await modelService.updateModel(updatedModel.id, {
+        user_id: updatedModel.user_id,
+        bio: updatedModel.bio,
+        banner: updatedModel.banner
+      })
       
-      // Update models list with the response data
-      const savedModel = response.data
       const updatedModels = models.map(model => 
         model.id === savedModel.id ? savedModel : model
       )
       setModels(updatedModels)
-      
       setEditingModel(null)
-      window.location.reload()
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 400) {
-          throw new Error(error.response.data?.error || 'Invalid input data')
-        } else {
-          throw new Error('Failed to update model profile')
-        }
-      } else {
-        throw new Error('Failed to update model profile')
-      }
+      throw new Error(error instanceof Error ? error.message : 'Failed to update model')
     }
   }
 
   const handleDelete = async (modelId: number) => {
-    if (!confirm('Are you sure you want to delete this model profile?')) return
+    if (!confirm('Are you sure you want to delete this model?')) return
 
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/models/${modelId}`)
+      await modelService.deleteModel(modelId)
       const updatedModels = models.filter(model => model.id !== modelId)
       setModels(updatedModels)
-      window.location.reload()
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to delete model profile')
+      setError(error instanceof Error ? error.message : 'Failed to delete model')
     }
   }
 
@@ -90,14 +71,14 @@ export default function ModelsPage() {
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-xl font-semibold text-gray-900">Models</h1>
-          <p className="mt-2 text-sm text-gray-700">A list of all model profiles in the system.</p>
+          <p className="mt-2 text-sm text-gray-700">A list of all models in the system.</p>
         </div>
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
           <button
             type="button"
             className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
           >
-            Add model profile
+            Add model
           </button>
         </div>
       </div>
@@ -113,10 +94,13 @@ export default function ModelsPage() {
                       ID
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Banner
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Bio
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Banner
+                      User ID
                     </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
@@ -129,18 +113,23 @@ export default function ModelsPage() {
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                         {model.id}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{model.bio}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {model.banner && (
-                          <div className="relative h-8 w-8">
+                          <div className="relative h-16 w-24">
                             <Image
                               src={model.banner}
-                              alt="Banner"
+                              alt="Model banner"
                               fill
                               className="rounded object-cover"
                             />
                           </div>
                         )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {model.bio.length > 50 ? `${model.bio.substring(0, 50)}...` : model.bio}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {model.user_id}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <button

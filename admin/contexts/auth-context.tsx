@@ -1,143 +1,79 @@
-"use client"
+'use client'
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { auth } from "@/shared/config/firebase"
-import {
-  User,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth"
-import { useRouter, usePathname } from "next/navigation"
+import { createContext, useContext, useEffect, useState } from 'react'
+import { onAuthStateChanged, signOut, type User as FirebaseUser } from 'firebase/auth'
+import { auth } from '../config/firebase'
+
+interface User {
+  uid: string
+  email: string | null
+  displayName: string | null
+}
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  error: string | null
-  signIn: (email: string, password: string) => Promise<void>
-  logout: () => Promise<void>
+  signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType)
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
-  const pathname = usePathname()
 
   useEffect(() => {
-    if (typeof window === "undefined" || !auth) {
-      setLoading(false)
-      return
-    }
-
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      async (user) => {
-        try {
-          if (user) {
-            // Get the ID token
-            const token = await user.getIdToken()
-            
-            // Set the session cookie
-            const response = await fetch(`/api/auth/session`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ token }),
-              credentials: 'include', // Important for cookies
-            })
-
-            if (!response.ok) {
-              console.error('Failed to set session cookie')
-              setUser(null)
-              setLoading(false)
-              return
-            }
-
-            // Set user and redirect to home if we're on the signin page
-            setUser(user)
-            if (pathname === '/auth/signin') {
-              router.push('/')
-              router.refresh() // Force a refresh to update the UI
-            }
-          } else {
-            // Clear the session cookie
-            await fetch(`/api/auth/session`, {
-              method: 'DELETE',
-              credentials: 'include', // Important for cookies
-            })
-            setUser(null)
-          }
-          setLoading(false)
-        } catch (error) {
-          console.error("Auth state change error:", error)
-          setUser(null)
-          setLoading(false)
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'User logged out')
+      if (firebaseUser) {
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName
         }
-      },
-      (error) => {
-        console.error("Auth state change error:", error)
-        setError(error.message)
-        setLoading(false)
+        console.log('Setting user:', userData)
+        setUser(userData)
+      } else {
+        console.log('Clearing user')
+        setUser(null)
       }
-    )
+      setLoading(false)
+    })
 
     return () => unsubscribe()
-  }, [router, pathname])
+  }, [])
 
-  const signIn = async (email: string, password: string) => {
-    if (!auth) throw new Error("Auth is not initialized")
-
+  const handleSignOut = async () => {
     try {
-      setError(null)
-      await signInWithEmailAndPassword(auth, email, password)
-      // Force a router refresh after successful sign in
-      router.refresh()
-    } catch (err) {
-      const error = err as Error
-      setError(error.message)
-      throw error
+      console.log('Signing out user')
+      await signOut(auth)
+      setUser(null)
+      // Refresh page after signout
+      window.location.reload()
+    } catch (error) {
+      console.error('Error signing out:', error)
+      setUser(null)
+      window.location.reload()
     }
   }
 
-  const logout = async () => {
-    if (!auth) throw new Error("Auth is not initialized")
-
-    try {
-      setError(null)
-      await signOut(auth)
-      router.push('/auth/signin')
-      router.refresh() // Force a refresh after logout
-    } catch (err) {
-      const error = err as Error
-      setError(error.message)
-      throw error
-    }
+  const value = {
+    user,
+    loading,
+    signOut: handleSignOut
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        error,
-        signIn,
-        logout,
-      }}
-    >
-      {!loading && children}
+    <AuthContext.Provider value={value}>
+      {children}
     </AuthContext.Provider>
   )
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider")
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
 } 

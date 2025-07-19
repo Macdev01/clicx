@@ -1,25 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import axios from 'axios'
-
-interface Video {
-  id: number
-  title: string
-  url: string
-  user_id: number
-  created_at: string
-  updated_at: string
-  user: {
-    username: string
-  }
-}
+import { videoService, type Video } from '@/services/videos'
 
 export default function VideosPage() {
   const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [editingVideo, setEditingVideo] = useState<Video | null>(null)
 
   useEffect(() => {
@@ -28,8 +15,8 @@ export default function VideosPage() {
 
   const fetchVideos = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/videos`)
-      setVideos(response.data)
+      const data = await videoService.getVideos()
+      setVideos(data)
       setLoading(false)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to fetch videos')
@@ -49,7 +36,7 @@ export default function VideosPage() {
     if (!confirm('Are you sure you want to delete this video?')) return
 
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/videos/${videoId}`)
+      await videoService.deleteVideo(videoId)
       setVideos(videos.filter(video => video.id !== videoId))
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete video')
@@ -94,7 +81,16 @@ export default function VideosPage() {
                       Title
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Author
+                      User ID
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Model ID
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Duration
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Premium
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Preview
@@ -114,7 +110,14 @@ export default function VideosPage() {
                         {video.id}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.title}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.user.username}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.userId}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{video.modelId}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {video.isPremium ? '✓' : '✗'}
+                      </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {video.url && (
                           <video className="h-12 w-20 object-cover">
@@ -124,7 +127,7 @@ export default function VideosPage() {
                         )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(video.created_at).toLocaleDateString()}
+                        {new Date(video.createdAt).toLocaleDateString()}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <button

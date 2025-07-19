@@ -1,47 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import Image from 'next/image'
 import PostEditForm from './components/PostEditForm'
-
-interface Media {
-  id: number
-  post_id: string
-  type: string
-  url: string
-  cover: string
-  duration: number
-  createdAt: string
-}
-
-interface User {
-  ID: number
-  email: string
-  nickname: string
-  balance: number
-  avatarUrl: string
-  isAdmin: boolean
-}
-
-interface Model {
-  id: number
-  user_id: number
-  bio: string
-  banner: string
-}
-
-interface Post {
-  id: string
-  text: string
-  isPremium: boolean
-  published_time: string
-  likes_count: number
-  user: User
-  model: Model
-  media: Media[]
-  isPurchased: boolean
-}
+import { postService, type Post } from '@/services/posts'
 
 export default function PostsPage() {
   const [posts, setPosts] = useState<Post[]>([])
@@ -55,8 +17,8 @@ export default function PostsPage() {
 
   const fetchPosts = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/posts`)
-      setPosts(response.data)
+      const data = await postService.getPosts()
+      setPosts(data)
       setLoading(false)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to fetch posts')
@@ -73,30 +35,24 @@ export default function PostsPage() {
 
   const handleSaveEdit = async (updatedPost: Post) => {
     try {
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/posts/${updatedPost.id}`,
-        updatedPost
-      )
+      const savedPost = await postService.updatePost(updatedPost.id, {
+        text: updatedPost.text,
+        isPremium: updatedPost.isPremium,
+        media: updatedPost.media?.map(m => ({
+          type: m.type,
+          url: m.url,
+          cover: m.cover,
+          duration: m.duration
+        }))
+      })
       
-      // Update posts list with the response data
-      const savedPost = response.data
       const updatedPosts = posts.map(post => 
         post.id === savedPost.id ? savedPost : post
       )
       setPosts(updatedPosts)
-      
       setEditingPost(null)
-      window.location.reload()
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 400) {
-          throw new Error(error.response.data?.error || 'Invalid input data')
-        } else {
-          throw new Error('Failed to update post')
-        }
-      } else {
-        throw new Error('Failed to update post')
-      }
+      throw new Error(error instanceof Error ? error.message : 'Failed to update post')
     }
   }
 
@@ -104,10 +60,9 @@ export default function PostsPage() {
     if (!confirm('Are you sure you want to delete this post?')) return
 
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`)
+      await postService.deletePost(postId)
       const updatedPosts = posts.filter(post => post.id !== postId)
       setPosts(updatedPosts)
-      window.location.reload()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete post')
     }
@@ -140,7 +95,7 @@ export default function PostsPage() {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 ">
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
                       ID
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -148,6 +103,9 @@ export default function PostsPage() {
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Author
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Model
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Premium
@@ -176,7 +134,39 @@ export default function PostsPage() {
                         {post.text.length > 50 ? `${post.text.substring(0, 50)}...` : post.text}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {post.user.nickname}
+                        <div className="flex items-center">
+                          {post.user.avatarUrl && (
+                            <div className="h-8 w-8 flex-shrink-0 mr-3">
+                              <Image
+                                src={post.user.avatarUrl}
+                                alt={`${post.user.name}'s avatar`}
+                                width={32}
+                                height={32}
+                                className="rounded-full"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-medium">{post.user.name}</div>
+                            <div className="text-gray-400">{post.user.nickname}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        <div className="flex items-center">
+                          {post.model.banner && (
+                            <div className="h-8 w-8 flex-shrink-0 mr-3">
+                              <Image
+                                src={post.model.banner}
+                                alt="Model banner"
+                                width={32}
+                                height={32}
+                                className="rounded object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="text-sm">{post.model.bio}</div>
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {post.isPremium ? '✓' : '✗'}
@@ -186,13 +176,18 @@ export default function PostsPage() {
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {post.media && post.media.length > 0 && (
-                          <div className="relative h-8 w-12">
-                            <Image
-                              src={post.media[0].cover}
-                              alt="Media cover"
-                              fill
-                              className="rounded object-cover"
-                            />
+                          <div className="flex items-center">
+                            <div className="relative h-8 w-12 mr-2">
+                              <Image
+                                src={post.media[0].cover}
+                                alt="Media preview"
+                                fill
+                                className="rounded object-cover"
+                              />
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {Math.floor(post.media[0].duration / 60)}:{(post.media[0].duration % 60).toString().padStart(2, '0')}
+                            </div>
                           </div>
                         )}
                       </td>
