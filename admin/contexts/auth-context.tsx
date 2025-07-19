@@ -55,12 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setLoading(false)
               return
             }
+
+            // Set user and redirect to home if we're on the signin page
+            setUser(user)
+            if (window.location.pathname === '/auth/signin') {
+              router.push('/')
+            }
           } else {
             // Clear the session cookie
             await fetch('/api/auth/session', { method: 'DELETE' })
+            setUser(null)
           }
-
-          setUser(user)
           setLoading(false)
         } catch (error) {
           console.error("Auth state change error:", error)
@@ -76,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => unsubscribe()
-  }, [])
+  }, [router])
 
   const signIn = async (email: string, password: string) => {
     if (!auth) throw new Error("Auth is not initialized")
@@ -84,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null)
       await signInWithEmailAndPassword(auth, email, password)
-      router.push('/')
+      // Navigation will be handled by onAuthStateChanged after session is set
     } catch (err) {
       const error = err as Error
       setError(error.message)

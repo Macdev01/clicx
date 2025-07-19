@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 
 export default function SignInPage() {
@@ -9,7 +8,6 @@ export default function SignInPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
   const { signIn } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,7 +17,6 @@ export default function SignInPage() {
 
     try {
       await signIn(email, password)
-      router.push("/")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign in")
     } finally {
