@@ -5,7 +5,8 @@ import (
 )
 
 type Purchase struct {
-	ID     uint `gorm:"primaryKey"`
-	UserID uint
-	PostID uuid.UUID `gorm:"type:uuid"`
+	ID        uint `gorm:"primaryKey"`
+	UserID    uint
+	PostID    uuid.UUID `gorm:"type:uuid"`
+	Completed bool      `gorm:"default:false" json:"completed"`
 }

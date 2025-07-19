@@ -80,3 +80,24 @@ func GetPurchases(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, purchases)
 }
+
+// CompletePurchase marks a purchase as completed.
+func CompletePurchase(c *gin.Context) {
+	id := c.Param("id")
+
+	var purchase models.Purchase
+	if err := database.DB.First(&purchase, id).Error; err != nil {
+		c.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	purchase.Completed = true
+	if err := database.DB.Save(&purchase).Error; err != nil {
+		c.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, purchase)
+}
