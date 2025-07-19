@@ -6,10 +6,9 @@ import (
 
 	"go-backend/config"
 	"go-backend/database"
+	"go-backend/logging"
 	"go-backend/middleware"
 	"go-backend/routes"
-
-	"go.uber.org/zap"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -17,10 +16,6 @@ import (
 )
 
 func main() {
-	// ✅ Создаём zap-логгер
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
-	logger.Info("Сервис запущен", zap.String("env", "prod"))
 
 	// ✅ Загружаем .env, но не падаем, если его нет
 	if err := godotenv.Load(); err != nil {
@@ -32,6 +27,11 @@ func main() {
 
 	// ✅ Подключаем базу
 	database.InitDB()
+
+	// ✅ Создаём zap-логгер
+	logger, _ := logging.InitLogger("prod")
+	defer logger.Sync()
+	logger.Info("Сервис запущен")
 
 	// ✅ Инициализация Firebase (только если ключи заданы)
 	if config.AppConfig.FirebaseProjectID != "" {
