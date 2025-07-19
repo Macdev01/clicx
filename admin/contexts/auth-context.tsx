@@ -8,7 +8,7 @@ import {
   signOut,
   onAuthStateChanged,
 } from "firebase/auth"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 interface AuthContextType {
   user: User | null
@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     if (typeof window === "undefined" || !auth) {
@@ -59,8 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Set user and redirect to home if we're on the signin page
             setUser(user)
-            if (window.location.pathname === '/auth/signin') {
+            if (pathname === '/auth/signin') {
               router.push('/')
+              router.refresh() // Force a refresh to update the UI
             }
           } else {
             // Clear the session cookie
@@ -85,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => unsubscribe()
-  }, [router])
+  }, [router, pathname])
 
   const signIn = async (email: string, password: string) => {
     if (!auth) throw new Error("Auth is not initialized")
@@ -93,7 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null)
       await signInWithEmailAndPassword(auth, email, password)
-      // Navigation will be handled by onAuthStateChanged after session is set
+      // Force a router refresh after successful sign in
+      router.refresh()
     } catch (err) {
       const error = err as Error
       setError(error.message)
@@ -108,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null)
       await signOut(auth)
       router.push('/auth/signin')
+      router.refresh() // Force a refresh after logout
     } catch (err) {
       const error = err as Error
       setError(error.message)
