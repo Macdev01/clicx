@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"time"
 
 	"go-backend/config"
@@ -12,14 +13,13 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"go.uber.org/zap"
 )
 
 func main() {
 
 	// ✅ Загружаем .env, но не падаем, если его нет
 	if err := godotenv.Load(); err != nil {
-		zap.L().Warn(".env not found, using env vars")
+		log.Println("⚠️ .env не найден, используем ENV переменные")
 	}
 
 	// ✅ Загружаем конфиг
@@ -30,16 +30,15 @@ func main() {
 
 	// ✅ Создаём zap-логгер
 	logger, _ := logging.InitLogger("prod")
-	zap.ReplaceGlobals(logger)
 	defer logger.Sync()
 	logger.Info("Сервис запущен")
 
 	// ✅ Инициализация Firebase (только если ключи заданы)
 	if config.AppConfig.FirebaseProjectID != "" {
-		middleware.InitFirebase(logger)
-		logger.Info("Firebase connected")
+		middleware.InitFirebase()
+		log.Println("✅ Firebase подключен")
 	} else {
-		logger.Warn("Firebase skipped (no config)")
+		log.Println("⚠️ Firebase пропущен (нет конфигурации)")
 	}
 
 	// ✅ Создаём Gin
@@ -64,10 +63,10 @@ func main() {
 	r.SetTrustedProxies([]string{"127.0.0.1"})
 
 	// ✅ Роуты
-	routes.InitRoutes(r, logger)
+	routes.InitRoutes(r)
 
 	// ✅ Запускаем сервер
 	if err := r.Run("0.0.0.0:" + config.AppConfig.AppPort); err != nil {
-		logger.Fatal("server start failed", zap.Error(err))
+		log.Fatalf("❌ Ошибка запуска сервера: %v", err)
 	}
 }
