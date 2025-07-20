@@ -24,12 +24,13 @@ func GetUserByEmail(email string) (*models.User, error) {
 }
 
 func CreateUser(email string, name string, avatar string, refCode string) (*models.User, error) {
+	code := utils.GenerateReferralCode(8)
 	user := &models.User{
 		Email:        email,
 		Name:         name,
 		AvatarURL:    avatar,
 		Nickname:     generateNickname(email),
-		ReferralCode: utils.GenerateReferralCode(8),
+		ReferralCode: &code,
 	}
 	if err := DB.Create(user).Error; err != nil {
 		return nil, err

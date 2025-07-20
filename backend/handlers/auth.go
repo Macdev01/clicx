@@ -34,7 +34,8 @@ func Register(c *gin.Context) {
 	}
 
 	// Генерация referral_code
-	user.ReferralCode = utils.GenerateReferralCode(int(user.ID))
+	code := utils.GenerateReferralCode(int(user.ID))
+	user.ReferralCode = &code
 
 	// Проверка реферального кода
 	if input.ReferralCode != "" {

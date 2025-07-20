@@ -1,6 +1,8 @@
 package services
 
 import (
+	"strings"
+
 	"go-backend/database"
 	"go-backend/models"
 	"go-backend/utils"
@@ -23,14 +25,23 @@ func GetUserByID(id string) (models.User, error) {
 }
 
 func CreateUser(user *models.User) error {
+	if user.Nickname == "" {
+		user.Nickname = generateNickname(user.Email)
+	}
+
 	if err := database.DB.Create(user).Error; err != nil {
 		return err
 	}
-	user.ReferralCode = utils.GenerateReferralCode(int(user.ID))
-	if err := database.DB.Model(user).Update("referral_code", user.ReferralCode).Error; err != nil {
+	code := utils.GenerateReferralCode(int(user.ID))
+	user.ReferralCode = &code
+	if err := database.DB.Model(user).Update("referral_code", code).Error; err != nil {
 		return err
 	}
 	return nil
+}
+
+func generateNickname(email string) string {
+	return "user_" + strings.Split(email, "@")[0]
 }
 
 func UpdateUser(user *models.User) error {

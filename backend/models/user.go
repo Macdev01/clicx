@@ -10,6 +10,6 @@ type User struct {
 	AvatarURL string  `json:"avatarUrl"`
 	IsAdmin   bool    `gorm:"default:false" json:"isAdmin"`
 
-	ReferralCode string `gorm:"type:varchar(20);unique" json:"referral_code"`
-	ReferredBy   *uint  `gorm:"index" json:"referred_by"` // FK to User.ID
+	ReferralCode *string `gorm:"type:varchar(20);unique" json:"referral_code"`
+	ReferredBy   *uint   `gorm:"index" json:"referred_by"` // FK to User.ID
 }

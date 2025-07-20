@@ -43,7 +43,9 @@ func GetPostByID(c *gin.Context) {
 
 	userVal, exists := c.Get("user")
 	if exists {
-		_ = userVal.(models.User)
+		if _, ok := userVal.(*models.User); ok {
+			// user is authenticated
+		}
 		post.IsPurchased = true
 	} else {
 		post.IsPurchased = false

@@ -22,7 +22,8 @@ func BuyContent(c *gin.Context) {
 	}
 
 	// Получаем user из контекста (предполагаем, что в middleware добавлен user)
-	user := c.MustGet("user").(models.User)
+	val := c.MustGet("user")
+	user := val.(*models.User)
 
 	var post models.Post
 	if err := database.DB.First(&post, "id = ?", req.PostID).Error; err != nil {
@@ -79,7 +80,8 @@ func BuyContent(c *gin.Context) {
 
 // GetPurchases возвращает список купленных постов для текущего пользователя
 func GetPurchases(c *gin.Context) {
-	user := c.MustGet("user").(models.User)
+	val := c.MustGet("user")
+	user := val.(*models.User)
 
 	var purchases []models.Purchase
 	if err := database.DB.Where("user_id = ?", user.ID).Find(&purchases).Error; err != nil {

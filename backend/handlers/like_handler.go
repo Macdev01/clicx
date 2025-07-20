@@ -10,7 +10,8 @@ import (
 )
 
 func ToggleLikePost(c *gin.Context) {
-	user := c.MustGet("user").(models.User)
+	val := c.MustGet("user")
+	user := val.(*models.User)
 
 	postIDStr := c.Param("id")
 	postUUID, err := uuid.Parse(postIDStr)
