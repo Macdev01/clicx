@@ -5,6 +5,7 @@ import (
 
 	"go-backend/config"
 	"go-backend/database"
+	"go-backend/logging"
 	"go-backend/models"
 	"go-backend/routes"
 
@@ -34,6 +35,7 @@ func SetupRouter(t *testing.T) *gin.Engine {
 	config.AppConfig = &config.Config{}
 
 	r := gin.Default()
-	routes.InitRoutes(r)
+	logger, _ := logging.InitLogger("prod")
+	routes.InitRoutes(r, logger)
 	return r
 }

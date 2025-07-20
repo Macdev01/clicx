@@ -16,7 +16,6 @@ type Config struct {
 	DBUser     string
 	DBPassword string
 	DBName     string
-	JwtSecret  string
 
 	// Plisio
 	PlisioKey    string
@@ -62,7 +61,6 @@ func LoadConfig() {
 		DBUser:     getEnv("DB_USER", ""),
 		DBPassword: getEnv("DB_PASSWORD", ""),
 		DBName:     getEnv("DB_NAME", ""),
-		JwtSecret:  getEnv("JWT_SECRET", ""),
 
 		PlisioKey:    getEnv("PLISIO_API_KEY", ""),
 		PlisioSecret: getEnv("PLISIO_SECRET_KEY", ""),

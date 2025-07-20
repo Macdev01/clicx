@@ -4,12 +4,14 @@ import (
 	"go-backend/handlers"
 	"go-backend/middleware"
 
+	"go.uber.org/zap"
+
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func InitRoutes(r *gin.Engine) {
+func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 	// Swagger documentation
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// Users
@@ -30,12 +32,12 @@ func InitRoutes(r *gin.Engine) {
 	{
 		posts.GET("", handlers.GetPosts)
 		posts.GET("/:id", handlers.GetPostByID)
-		posts.POST("", middleware.UserMiddlewareGin(), handlers.CreatePost)
-		posts.PUT("/:id", middleware.UserMiddlewareGin(), handlers.UpdatePost)
-		posts.DELETE("/:id", middleware.UserMiddlewareGin(), handlers.DeletePost)
+		posts.POST("", middleware.UserMiddleware(logger), handlers.CreatePost)
+		posts.PUT("/:id", middleware.UserMiddleware(logger), handlers.UpdatePost)
+		posts.DELETE("/:id", middleware.UserMiddleware(logger), handlers.DeletePost)
 		// Лайки для постов
-		posts.POST("/:id/like", middleware.UserMiddlewareGin(), handlers.ToggleLikePost)
-		posts.POST("/:id/save", middleware.UserMiddlewareGin(), handlers.ToggleSavePost)
+		posts.POST("/:id/like", middleware.UserMiddleware(logger), handlers.ToggleLikePost)
+		posts.POST("/:id/save", middleware.UserMiddleware(logger), handlers.ToggleSavePost)
 	}
 
 	// Orders
@@ -59,7 +61,7 @@ func InitRoutes(r *gin.Engine) {
 	}
 
 	// Media / Videos
-	videos := r.Group("/videos", middleware.UserMiddlewareGin())
+	videos := r.Group("/videos", middleware.UserMiddleware(logger))
 	{
 		videos.POST("/upload", handlers.UploadVideo)    // Загрузка видео для поста
 		videos.GET("/:id/stream", handlers.StreamVideo) // Получение ссылки для стрима
@@ -68,20 +70,20 @@ func InitRoutes(r *gin.Engine) {
 	}
 
 	// Покупка контента
-	purchases := r.Group("/purchases", middleware.UserMiddlewareGin())
+	purchases := r.Group("/purchases", middleware.UserMiddleware(logger))
 	{
 		purchases.POST("", handlers.BuyContent)                   // Покупка
 		purchases.GET("", handlers.GetPurchases)                  // История покупок
 		purchases.PUT("/:id/complete", handlers.CompletePurchase) // Завершить покупку
 	}
 
-	r.POST("/follow/:id", middleware.UserMiddlewareGin(), handlers.FollowUser)
-	r.DELETE("/follow/:id", middleware.UserMiddlewareGin(), handlers.UnfollowUser)
-	r.GET("/followers", middleware.UserMiddlewareGin(), handlers.GetFollowers)
-	r.GET("/referrals", middleware.UserMiddlewareGin(), handlers.GetReferrals)
+	r.POST("/follow/:id", middleware.UserMiddleware(logger), handlers.FollowUser)
+	r.DELETE("/follow/:id", middleware.UserMiddleware(logger), handlers.UnfollowUser)
+	r.GET("/followers", middleware.UserMiddleware(logger), handlers.GetFollowers)
+	r.GET("/referrals", middleware.UserMiddleware(logger), handlers.GetReferrals)
 
 	// Админские маршруты
-	admin := r.Group("/admin", middleware.UserMiddlewareGin())
+	admin := r.Group("/admin", middleware.UserMiddleware(logger))
 	{
 		admin.POST("/posts/upload", handlers.CreatePostWithMedia) // Создать пост с медиа
 	}
