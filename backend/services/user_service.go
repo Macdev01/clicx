@@ -52,11 +52,11 @@ func DeleteUser(id string) error {
 	return database.DB.Delete(&models.User{}, id).Error
 }
 
-func GetOrCreateUser(email, name, avatar, refCode string) (models.User, error) {
+func GetOrCreateUser(email, avatar, refCode string) (models.User, error) {
 	user, err := database.GetUserByEmail(email)
 	if err != nil {
 		if err == database.ErrUserNotFound {
-			user, err = database.CreateUser(email, name, avatar, refCode)
+			user, err = database.CreateUser(email, avatar, refCode)
 			if err != nil {
 				return models.User{}, err
 			}

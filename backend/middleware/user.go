@@ -29,11 +29,10 @@ func UserMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		email, _ := decoded.Claims["email"].(string)
-		name, _ := decoded.Claims["name"].(string)
 		avatar, _ := decoded.Claims["picture"].(string)
 		refCode := c.GetHeader("X-Referral-Code")
 
-		user, err := services.GetOrCreateUser(email, name, avatar, refCode)
+		user, err := services.GetOrCreateUser(email, avatar, refCode)
 		if err != nil {
 			logger.Error("failed to load user", zap.Error(err))
 			c.Next()

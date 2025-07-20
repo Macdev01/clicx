@@ -29,7 +29,7 @@ func SetupRouter(t *testing.T) *gin.Engine {
 	}
 
 	// create default admin user so UserMiddlewareGin can find it
-	db.Create(&models.User{Email: "admin@example.com", Name: "admin", IsAdmin: true})
+	db.Create(&models.User{Email: "admin@example.com", IsAdmin: true})
 
 	// minimal config
 	config.AppConfig = &config.Config{}

@@ -18,7 +18,7 @@ func TestModelProfileHandlers(t *testing.T) {
 	user := createUser(t, r)
 
 	// create model profile
-	body, _ := json.Marshal(gin.H{"user_id": user.ID, "bio": "bio"})
+	body, _ := json.Marshal(gin.H{"user_id": user.ID, "name": "Model", "bio": "bio"})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/models", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

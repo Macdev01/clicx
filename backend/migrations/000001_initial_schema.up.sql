@@ -8,7 +8,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     nickname VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    balance DECIMAL(10,2) DEFAULT 0.00,
+    balance INTEGER DEFAULT 0,
     avatar_url VARCHAR(500),
     is_admin BOOLEAN DEFAULT FALSE
 );
@@ -17,6 +17,7 @@ CREATE TABLE users (
 CREATE TABLE model_profiles (
     id SERIAL PRIMARY KEY,
     user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255),
     bio TEXT,
     banner VARCHAR(500)
 );

@@ -10,7 +10,6 @@ import (
 
 func Register(c *gin.Context) {
 	var input struct {
-		Name         string `json:"name"`
 		Email        string `json:"email"`
 		Nickname     string `json:"nickname"`
 		Password     string `json:"password"`
@@ -22,7 +21,6 @@ func Register(c *gin.Context) {
 	}
 
 	user := models.User{
-		Name:     input.Name,
 		Email:    input.Email,
 		Nickname: input.Nickname,
 		Password: input.Password, // хэшируй!

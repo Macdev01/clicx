@@ -15,7 +15,7 @@ import (
 
 func createUser(t *testing.T, r *gin.Engine) models.User {
 	t.Helper()
-	body, _ := json.Marshal(models.User{Email: fmt.Sprintf("u%v@example.com", time.Now().UnixNano()), Name: "U"})
+	body, _ := json.Marshal(models.User{Email: fmt.Sprintf("u%v@example.com", time.Now().UnixNano())})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -30,7 +30,7 @@ func createUser(t *testing.T, r *gin.Engine) models.User {
 
 func createModel(t *testing.T, r *gin.Engine, userID uint) models.ModelProfile {
 	t.Helper()
-	body, _ := json.Marshal(gin.H{"user_id": userID, "bio": "bio"})
+	body, _ := json.Marshal(gin.H{"user_id": userID, "name": "Model", "bio": "bio"})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/models", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
