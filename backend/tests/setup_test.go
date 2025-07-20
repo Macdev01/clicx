@@ -36,6 +36,16 @@ func SetupRouter(t *testing.T) *gin.Engine {
 
 	r := gin.Default()
 	logger, _ := logging.InitLogger("prod")
+	// For tests, set the first user as the authenticated user if no token provided
+	r.Use(func(c *gin.Context) {
+		if _, exists := c.Get("user"); !exists {
+			var u models.User
+			if err := database.DB.First(&u, 1).Error; err == nil {
+				c.Set("user", &u)
+			}
+		}
+		c.Next()
+	})
 	routes.InitRoutes(r, logger)
 	return r
 }
