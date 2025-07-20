@@ -64,10 +64,20 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	user.ReferralCode = utils.GenerateReferralCode()
+	// Сначала сохраняем пользователя, чтобы получить ID
 	if err := database.DB.Create(&user).Error; err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
+	// Генерируем ReferralCode с использованием user.ID
+	user.ReferralCode = utils.GenerateReferralCode(int(user.ID))
+
+	// Обновляем ReferralCode в базе
+	if err := database.DB.Model(&user).Update("referral_code", user.ReferralCode).Error; err != nil {
+		c.Error(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to update referral code"})
 		return
 	}
 
