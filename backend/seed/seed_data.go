@@ -5,9 +5,10 @@ import (
 	"go-backend/config"
 	"go-backend/database"
 	"go-backend/models"
-	"log"
 	"math/rand"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/bxcodec/faker/v4"
 	"github.com/google/uuid"
@@ -16,13 +17,13 @@ import (
 func truncateAllTables() error {
 	err := database.DB.Exec(`
 		TRUNCATE TABLE 
-			users, model_profiles, posts, orders, media, comments 
+			admins, users, model_profiles, posts, orders, media, comments 
 		RESTART IDENTITY CASCADE
 	`).Error
 	if err != nil {
 		return fmt.Errorf("ошибка при очистке таблиц: %w", err)
 	}
-	log.Println("🧹 Таблицы очищены")
+	zap.L().Info("Таблицы очищены")
 	return nil
 }
 
@@ -31,11 +32,10 @@ func RunUsers() ([]models.User, error) {
 
 	// Добавляем админа первым
 	users = append(users, models.User{
-		Name:      "Admin",
 		Email:     "admin@example.com",
 		Nickname:  "admin",
 		Password:  "admin123", // ❗ лучше хэшировать
-		Balance:   999.99,
+		Balance:   1000,
 		AvatarURL: faker.URL(),
 		IsAdmin:   true,
 	})
@@ -43,11 +43,10 @@ func RunUsers() ([]models.User, error) {
 	// Генерируем остальных пользователей
 	for i := 0; i < 10; i++ {
 		users = append(users, models.User{
-			Name:      faker.Name(),
 			Email:     faker.Email(),
 			Nickname:  faker.Username(),
 			Password:  faker.Password(),
-			Balance:   float64(rand.Intn(10000)) / 100.0,
+			Balance:   rand.Intn(1000),
 			AvatarURL: faker.URL(),
 		})
 	}
@@ -55,7 +54,7 @@ func RunUsers() ([]models.User, error) {
 	if err := database.DB.Create(&users).Error; err != nil {
 		return nil, fmt.Errorf("ошибка при создании Users: %w", err)
 	}
-	log.Printf("✅ Сидировано Users: %d (включая админа)", len(users))
+	zap.S().Infof("Сидировано Users: %d (включая админа)", len(users))
 	return users, nil
 }
 
@@ -64,6 +63,7 @@ func RunModelProfiles(users []models.User) ([]models.ModelProfile, error) {
 	for _, user := range users {
 		profiles = append(profiles, models.ModelProfile{
 			UserID: user.ID,
+			Name:   faker.Name(),
 			Bio:    faker.Sentence(),
 			Banner: faker.URL(),
 		})
@@ -71,7 +71,7 @@ func RunModelProfiles(users []models.User) ([]models.ModelProfile, error) {
 	if err := database.DB.Create(&profiles).Error; err != nil {
 		return nil, fmt.Errorf("ошибка при создании ModelProfiles: %w", err)
 	}
-	log.Printf("✅ Сидировано ModelProfiles: %d", len(profiles))
+	zap.S().Infof("Сидировано ModelProfiles: %d", len(profiles))
 	return profiles, nil
 }
 
@@ -104,7 +104,7 @@ func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Pos
 		return nil, fmt.Errorf("ошибка при создании Posts: %w", err)
 	}
 
-	log.Printf("✅ Сидировано Posts: %d", len(posts))
+	zap.S().Infof("Сидировано Posts: %d", len(posts))
 	return posts, nil
 }
 
@@ -121,7 +121,7 @@ func RunComments(posts []models.Post, users []models.User) error {
 	if err := database.DB.Create(&comments).Error; err != nil {
 		return fmt.Errorf("ошибка при создании Comments: %w", err)
 	}
-	log.Printf("✅ Сидировано Comments: %d", len(comments))
+	zap.S().Infof("Сидировано Comments: %d", len(comments))
 	return nil
 }
 
@@ -147,6 +147,6 @@ func SeedData() error {
 	if err := RunComments(posts, users); err != nil {
 		return err
 	}
-	log.Println("🎉 Сидирование завершено успешно.")
+	zap.L().Info("Сидирование завершено успешно")
 	return nil
 }

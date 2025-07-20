@@ -16,14 +16,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the main application
+# Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
-
-# Build migrate binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o migrate ./cmd/migrate.go
-
-# Build seed binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o seed_bin ./cmd/seed/main.go
 
 # Final stage
 FROM alpine:latest
@@ -33,17 +27,17 @@ RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /root/
 
-# Copy the binaries from builder stage
+# Copy the binary from builder stage
 COPY --from=builder /app/main .
-COPY --from=builder /app/migrate .
-COPY --from=builder /app/seed_bin .
 
+# Copy the Firebase configuration file if it exists
+COPY --from=builder /app/clixxx-dev-44e45f09d47f.json* ./
 
 # Copy migrations if they exist
 COPY --from=builder /app/migrations ./migrations/
 
-# Make sure the binaries are executable
-RUN chmod +x ./main ./migrate ./seed_bin
+# Make sure the binary is executable
+RUN chmod +x ./main
 
 # Expose port (you can adjust this based on your config)
 EXPOSE 8080

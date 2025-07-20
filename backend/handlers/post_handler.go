@@ -43,7 +43,9 @@ func GetPostByID(c *gin.Context) {
 
 	userVal, exists := c.Get("user")
 	if exists {
-		_ = userVal.(models.User)
+		if _, ok := userVal.(*models.User); ok {
+			// user is authenticated
+		}
 		post.IsPurchased = true
 	} else {
 		post.IsPurchased = false
@@ -91,11 +93,11 @@ func UpdatePost(c *gin.Context) {
 			Duration int    `json:"duration"`
 		} `json:"media"`
 		Model struct {
-			Name     string  `json:"name"`
-			Nickname string  `json:"nickname"`
-			Email    string  `json:"email"`
-			Avatar   string  `json:"avatarUrl"`
-			Balance  float64 `json:"balance"`
+			Name     string `json:"name"`
+			Nickname string `json:"nickname"`
+			Email    string `json:"email"`
+			Avatar   string `json:"avatarUrl"`
+			Balance  int    `json:"balance"`
 		} `json:"model"`
 	}
 
@@ -132,7 +134,7 @@ func UpdatePost(c *gin.Context) {
 		}
 	}
 
-	post.User.Name = input.Model.Name
+	post.ModelProfile.Name = input.Model.Name
 	post.User.Nickname = input.Model.Nickname
 	post.User.Email = input.Model.Email
 	post.User.AvatarURL = input.Model.Avatar

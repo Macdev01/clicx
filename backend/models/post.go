@@ -4,14 +4,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Post struct {
-	ID          uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Text        string    `json:"text"`
 	IsPremium   bool      `json:"isPremium"`
 	PublishedAt time.Time `json:"published_time"`
 	LikesCount  int       `json:"likes_count"`
+	Price       float64   `json:"price"`
 
 	UserID       uint         `json:"-"`
 	User         User         `json:"user"`
@@ -20,6 +22,12 @@ type Post struct {
 	Media        []Media      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE" json:"media"`
 	Comments     []Comment    `gorm:"foreignKey:PostID" json:"comments"`
 	IsPurchased  bool         `gorm:"-" json:"isPurchased"`
+}
 
-	CreatedAt time.Time `gorm:"-" json:"-"`
+// BeforeCreate sets a UUID for the post before inserting into the database.
+func (p *Post) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == uuid.Nil {
+		p.ID = uuid.New()
+	}
+	return nil
 }
