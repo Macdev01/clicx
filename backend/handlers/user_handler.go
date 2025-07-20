@@ -1,9 +1,8 @@
 package handlers
 
 import (
-	"go-backend/database"
 	"go-backend/models"
-	"go-backend/utils"
+	"go-backend/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,8 +16,8 @@ import (
 // @Success      200 {array} models.User
 // @Router       /users [get]
 func GetUsers(c *gin.Context) {
-	var users []models.User
-	if err := database.DB.Find(&users).Error; err != nil {
+	users, err := services.GetUsers()
+	if err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
@@ -37,8 +36,8 @@ func GetUsers(c *gin.Context) {
 // @Router       /users/{id} [get]
 func GetUserByID(c *gin.Context) {
 	id := c.Param("id")
-	var user models.User
-	if err := database.DB.First(&user, id).Error; err != nil {
+	user, err := services.GetUserByID(id)
+	if err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
@@ -64,20 +63,9 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Сначала сохраняем пользователя, чтобы получить ID
-	if err := database.DB.Create(&user).Error; err != nil {
+	if err := services.CreateUser(&user); err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-		return
-	}
-
-	// Генерируем ReferralCode с использованием user.ID
-	user.ReferralCode = utils.GenerateReferralCode(int(user.ID))
-
-	// Обновляем ReferralCode в базе
-	if err := database.DB.Model(&user).Update("referral_code", user.ReferralCode).Error; err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to update referral code"})
 		return
 	}
 
@@ -96,9 +84,8 @@ func CreateUser(c *gin.Context) {
 // @Router       /users/{id} [put]
 func UpdateUser(c *gin.Context) {
 	id := c.Param("id")
-	var user models.User
-
-	if err := database.DB.First(&user, id).Error; err != nil {
+	user, err := services.GetUserByID(id)
+	if err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
@@ -110,7 +97,7 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	if err := database.DB.Save(&user).Error; err != nil {
+	if err := services.UpdateUser(&user); err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
@@ -128,7 +115,7 @@ func UpdateUser(c *gin.Context) {
 // @Router       /users/{id} [delete]
 func DeleteUser(c *gin.Context) {
 	id := c.Param("id")
-	if err := database.DB.Delete(&models.User{}, id).Error; err != nil {
+	if err := services.DeleteUser(id); err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return

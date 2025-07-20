@@ -3,13 +3,13 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"sync"
 
 	"go-backend/config"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
+	"go.uber.org/zap"
 	"google.golang.org/api/option"
 )
 
@@ -19,7 +19,7 @@ var (
 )
 
 // InitFirebase — инициализация Firebase на основе config.AppConfig
-func InitFirebase() *auth.Client {
+func InitFirebase(logger *zap.Logger) *auth.Client {
 	once.Do(func() {
 		// Собираем креды
 		creds := map[string]string{
@@ -38,32 +38,29 @@ func InitFirebase() *auth.Client {
 		// Преобразуем в JSON
 		credJSON, err := json.Marshal(creds)
 		if err != nil {
-			log.Fatalf("❌ Ошибка marshaling Firebase creds: %v", err)
+			logger.Fatal("failed to marshal firebase creds", zap.Error(err))
 		}
 
 		// Создаём Firebase App
 		opt := option.WithCredentialsJSON(credJSON)
 		app, err := firebase.NewApp(context.Background(), nil, opt)
 		if err != nil {
-			log.Fatalf("❌ Firebase init error: %v", err)
+			logger.Fatal("firebase init error", zap.Error(err))
 		}
 
 		// Клиент Auth
 		client, err := app.Auth(context.Background())
 		if err != nil {
-			log.Fatalf("❌ Firebase Auth error: %v", err)
+			logger.Fatal("firebase auth error", zap.Error(err))
 		}
 
 		firebaseAuth = client
-		log.Println("✅ Firebase успешно инициализирован через config")
+		logger.Info("Firebase initialized using config")
 	})
 	return firebaseAuth
 }
 
 // GetFirebaseAuth — безопасно возвращает клиента Firebase Auth
 func GetFirebaseAuth() *auth.Client {
-	if firebaseAuth == nil {
-		log.Fatal("❌ Firebase не инициализирован. Вызови InitFirebase() в main.go")
-	}
 	return firebaseAuth
 }

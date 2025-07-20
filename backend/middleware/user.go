@@ -1,29 +1,46 @@
 package middleware
 
 import (
-	"log"
+	"context"
+	"strings"
 
-	"go-backend/database"
-	"go-backend/models"
+	"go-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
-func UserMiddlewareGin() gin.HandlerFunc {
+// UserMiddleware validates Firebase token and loads user into context.
+func UserMiddleware(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Проверка токена (Firebase) убрана для тестов, можно вернуть позже
-		log.Println("⚠ Dev mode: принудительно используем админа")
-
-		// Жёстко ищем админа в базе
-		var admin models.User
-		if err := database.DB.Where("is_admin = ?", true).First(&admin).Error; err == nil {
-			c.Set("user", &admin)
-			log.Println("✅ Админ найден:", admin.Email)
-		} else {
-			log.Println("❌ Админ не найден, попробуйте создать вручную")
-			c.Set("user", nil)
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.Next()
+			return
 		}
 
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		client := GetFirebaseAuth()
+		decoded, err := client.VerifyIDToken(context.Background(), token)
+		if err != nil {
+			logger.Warn("invalid firebase token", zap.Error(err))
+			c.Next()
+			return
+		}
+
+		email, _ := decoded.Claims["email"].(string)
+		name, _ := decoded.Claims["name"].(string)
+		avatar, _ := decoded.Claims["picture"].(string)
+		refCode := c.GetHeader("X-Referral-Code")
+
+		user, err := services.GetOrCreateUser(email, name, avatar, refCode)
+		if err != nil {
+			logger.Error("failed to load user", zap.Error(err))
+			c.Next()
+			return
+		}
+
+		c.Set("user", user)
 		c.Next()
 	}
 }
