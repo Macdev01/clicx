@@ -11,6 +11,7 @@ import (
 
 type ModelProfileInput struct {
 	UserID uint   `json:"user_id" binding:"required"`
+	Name   string `json:"name"`
 	Bio    string `json:"bio"`
 	Banner string `json:"banner"`
 }
@@ -57,6 +58,7 @@ func CreateModelProfile(c *gin.Context) {
 
 	profile := models.ModelProfile{
 		UserID: input.UserID,
+		Name:   input.Name,
 		Bio:    input.Bio,
 		Banner: input.Banner,
 	}
@@ -87,6 +89,7 @@ func UpdateModelProfile(c *gin.Context) {
 	}
 
 	var input struct {
+		Name   string `json:"name"`
 		Bio    string `json:"bio"`
 		Banner string `json:"banner"`
 	}
@@ -96,6 +99,7 @@ func UpdateModelProfile(c *gin.Context) {
 		return
 	}
 
+	existing.Name = input.Name
 	existing.Bio = input.Bio
 	existing.Banner = input.Banner
 

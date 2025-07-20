@@ -1,4 +1,6 @@
 -- Drop tables in reverse order to avoid foreign key constraint issues
+DROP TABLE IF EXISTS saved_posts;
+DROP TABLE IF EXISTS purchases;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS media;

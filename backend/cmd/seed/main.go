@@ -1,14 +1,15 @@
 package main
 
 import (
-	"log"
-
-	"go-backend/config"
-	"go-backend/seed"
+        "go-backend/config"
+        "go-backend/logging"
+        "go-backend/seed"
 )
 
 func main() {
-	config.LoadConfig()
-	seed.SeedData()
-	log.Println("✅ Сидинг завершён")
+        config.LoadConfig()
+        logger, _ := logging.InitLogger("prod")
+        defer logger.Sync()
+        seed.SeedData()
+        logger.Info("Сидинг завершён")
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"go-backend/models"
+	"go-backend/utils"
 
 	"gorm.io/gorm"
 )
@@ -22,15 +23,25 @@ func GetUserByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func CreateUser(email string, name string, avatar string) (*models.User, error) {
+func CreateUser(email string, avatar string, refCode string) (*models.User, error) {
+	code := utils.GenerateReferralCode(8)
 	user := &models.User{
-		Email:     email,
-		Name:      name,
-		AvatarURL: avatar,
-		Nickname:  generateNickname(email),
+		Email:        email,
+		AvatarURL:    avatar,
+		Nickname:     generateNickname(email),
+		ReferralCode: &code,
 	}
 	if err := DB.Create(user).Error; err != nil {
 		return nil, err
+	}
+	if refCode != "" {
+		var inviter models.User
+		if err := DB.Where("referral_code = ?", refCode).First(&inviter).Error; err == nil {
+			ref := models.Referral{UserID: inviter.ID, ReferralCode: refCode, InvitedUserID: user.ID}
+			DB.Create(&ref)
+			inviter.Balance += 1
+			DB.Save(&inviter)
+		}
 	}
 	return user, nil
 }
