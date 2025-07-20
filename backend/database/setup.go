@@ -1,10 +1,11 @@
 package database
 
 import (
-	"fmt"
-	"go-backend/config"
-	"go-backend/models"
-	"log"
+        "fmt"
+        "go-backend/config"
+        "go-backend/models"
+
+        "go.uber.org/zap"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -19,19 +20,19 @@ func InitDB() {
 		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort,
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("Не удалось подключиться к БД: %v", err)
-	}
+        db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+        if err != nil {
+                zap.L().Fatal("Не удалось подключиться к БД", zap.Error(err))
+        }
 
-	DB = db
-	log.Println("✅ Успешное подключение к БД")
+        DB = db
+        zap.L().Info("Успешное подключение к БД")
 }
 
 func GetDB() *gorm.DB {
-	if DB == nil {
-		log.Fatal("БД не инициализирована. Сначала вызови InitDB()")
-	}
+        if DB == nil {
+                zap.L().Fatal("БД не инициализирована. Сначала вызови InitDB()")
+        }
 	return DB
 }
 
@@ -51,10 +52,10 @@ func MigrateAll() error {
 		&models.Referral{},
 		&models.Log{},
 	)
-	if err != nil {
-		return fmt.Errorf("ошибка миграции: %w", err)
-	}
+        if err != nil {
+                return fmt.Errorf("ошибка миграции: %w", err)
+        }
 
-	log.Println("✅ Миграции прошли успешно")
-	return nil
+        zap.L().Info("Миграции прошли успешно")
+        return nil
 }

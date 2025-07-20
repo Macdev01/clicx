@@ -1,12 +1,12 @@
 package config
 
 import (
-	"log"
-	"os"
-	"strconv"
-	"strings"
+        "os"
+        "strconv"
+        "strings"
 
-	"github.com/joho/godotenv"
+        "github.com/joho/godotenv"
+        "go.uber.org/zap"
 )
 
 type Config struct {
@@ -43,16 +43,16 @@ type Config struct {
 var AppConfig *Config
 
 func LoadConfig() {
-	// Загружаем .env (если есть)
-	if err := godotenv.Load(); err != nil {
-		log.Println("⚠️ .env файл не найден, читаем из системных переменных")
-	}
+        // Загружаем .env (если есть)
+        if err := godotenv.Load(); err != nil {
+                zap.L().Warn(".env файл не найден, читаем из системных переменных", zap.Error(err))
+        }
 
 	// Парсим порт БД
-	port, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
-	if err != nil {
-		log.Fatalf("❌ Невалидный DB_PORT: %v", err)
-	}
+        port, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
+        if err != nil {
+                zap.L().Fatal("Невалидный DB_PORT", zap.Error(err))
+        }
 
 	AppConfig = &Config{
 		AppPort:    getEnv("APP_PORT", "8080"),

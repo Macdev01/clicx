@@ -1,29 +1,30 @@
 package seed
 
 import (
-	"fmt"
-	"go-backend/config"
-	"go-backend/database"
-	"go-backend/models"
-	"log"
-	"math/rand"
-	"time"
+        "fmt"
+        "go-backend/config"
+        "go-backend/database"
+        "go-backend/models"
+        "math/rand"
+        "time"
+
+        "go.uber.org/zap"
 
 	"github.com/bxcodec/faker/v4"
 	"github.com/google/uuid"
 )
 
 func truncateAllTables() error {
-	err := database.DB.Exec(`
+        err := database.DB.Exec(`
 		TRUNCATE TABLE 
 			admins, users, model_profiles, posts, orders, media, comments 
 		RESTART IDENTITY CASCADE
 	`).Error
-	if err != nil {
-		return fmt.Errorf("ошибка при очистке таблиц: %w", err)
-	}
-	log.Println("🧹 Таблицы очищены")
-	return nil
+        if err != nil {
+                return fmt.Errorf("ошибка при очистке таблиц: %w", err)
+        }
+        zap.L().Info("Таблицы очищены")
+        return nil
 }
 
 func RunUsers() ([]models.User, error) {
@@ -55,7 +56,7 @@ func RunUsers() ([]models.User, error) {
 	if err := database.DB.Create(&users).Error; err != nil {
 		return nil, fmt.Errorf("ошибка при создании Users: %w", err)
 	}
-	log.Printf("✅ Сидировано Users: %d (включая админа)", len(users))
+        zap.S().Infof("Сидировано Users: %d (включая админа)", len(users))
 	return users, nil
 }
 
@@ -71,7 +72,7 @@ func RunModelProfiles(users []models.User) ([]models.ModelProfile, error) {
 	if err := database.DB.Create(&profiles).Error; err != nil {
 		return nil, fmt.Errorf("ошибка при создании ModelProfiles: %w", err)
 	}
-	log.Printf("✅ Сидировано ModelProfiles: %d", len(profiles))
+        zap.S().Infof("Сидировано ModelProfiles: %d", len(profiles))
 	return profiles, nil
 }
 
@@ -104,7 +105,7 @@ func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Pos
 		return nil, fmt.Errorf("ошибка при создании Posts: %w", err)
 	}
 
-	log.Printf("✅ Сидировано Posts: %d", len(posts))
+        zap.S().Infof("Сидировано Posts: %d", len(posts))
 	return posts, nil
 }
 
@@ -121,7 +122,7 @@ func RunComments(posts []models.Post, users []models.User) error {
 	if err := database.DB.Create(&comments).Error; err != nil {
 		return fmt.Errorf("ошибка при создании Comments: %w", err)
 	}
-	log.Printf("✅ Сидировано Comments: %d", len(comments))
+        zap.S().Infof("Сидировано Comments: %d", len(comments))
 	return nil
 }
 
@@ -147,6 +148,6 @@ func SeedData() error {
 	if err := RunComments(posts, users); err != nil {
 		return err
 	}
-	log.Println("🎉 Сидирование завершено успешно.")
+        zap.L().Info("Сидирование завершено успешно")
 	return nil
 }
