@@ -1,0 +1,298 @@
+basePath: /
+definitions:
+  gin.H:
+    additionalProperties: {}
+    type: object
+  handlers.MetricsResponse:
+    properties:
+      orders:
+        type: integer
+      posts:
+        type: integer
+      users:
+        type: integer
+    type: object
+  models.Comment:
+    properties:
+      id:
+        type: integer
+      post_id:
+        type: string
+      text:
+        type: string
+      time:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: integer
+    type: object
+  models.Media:
+    properties:
+      cover:
+        type: string
+      createdAt:
+        type: string
+      duration:
+        description: в секундах
+        type: integer
+      id:
+        type: integer
+      post_id:
+        description: один к одному
+        type: string
+      type:
+        description: '"video" или "photo"'
+        type: string
+      url:
+        type: string
+    type: object
+  models.ModelProfile:
+    properties:
+      banner:
+        type: string
+      bio:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.Post:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/models.Comment'
+        type: array
+      id:
+        type: string
+      isPremium:
+        type: boolean
+      isPurchased:
+        type: boolean
+      likes_count:
+        type: integer
+      media:
+        items:
+          $ref: '#/definitions/models.Media'
+        type: array
+      model:
+        $ref: '#/definitions/models.ModelProfile'
+      price:
+        type: integer
+      published_time:
+        type: string
+      text:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.User:
+    properties:
+      avatarUrl:
+        type: string
+      balance:
+        type: integer
+      email:
+        type: string
+      id:
+        type: integer
+      isAdmin:
+        type: boolean
+      nickname:
+        type: string
+      referral_code:
+        type: string
+      referred_by:
+        description: FK to User.ID
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: REST API for the Clicx platform
+  title: Clicx API
+  version: "1.0"
+paths:
+  /metrics:
+    get:
+      description: Returns counters used in admin dashboard
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MetricsResponse'
+      summary: Get platform metrics
+      tags:
+      - metrics
+  /posts:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Post'
+            type: array
+      summary: List posts
+      tags:
+      - posts
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Post
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/models.Post'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Post'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Create post
+      tags:
+      - posts
+  /posts/{id}:
+    get:
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Post'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Get post by ID
+      tags:
+      - posts
+  /users:
+    get:
+      description: Returns all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+      summary: List users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Create user
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Delete user
+      tags:
+      - users
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Get user by ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Update user
+      tags:
+      - users
+swagger: "2.0"

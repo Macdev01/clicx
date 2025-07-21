@@ -1,5 +1,10 @@
 package main
 
+// @title           Clicx API
+// @version         1.0
+// @description     REST API for the Clicx platform
+// @BasePath        /
+
 import (
 	"time"
 
