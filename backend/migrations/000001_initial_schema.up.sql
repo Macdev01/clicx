@@ -4,13 +4,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- USERS
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     nickname VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     balance INTEGER DEFAULT 0,
     avatar_url VARCHAR(500),
-    is_admin BOOLEAN DEFAULT FALSE
+    is_admin BOOLEAN DEFAULT FALSE,
+    referral_code VARCHAR(20) UNIQUE,
+    referred_by INTEGER REFERENCES users(id)
 );
 
 -- MODEL PROFILES
@@ -29,6 +30,7 @@ CREATE TABLE posts (
     is_premium BOOLEAN DEFAULT false,
     published_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     likes_count INTEGER DEFAULT 0,
+    price DOUBLE PRECISION DEFAULT 0,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     model_id INTEGER REFERENCES model_profiles(id) ON DELETE SET NULL
 );
@@ -61,6 +63,14 @@ CREATE TABLE likes (
     created_at TIMESTAMP DEFAULT now()
 );
 
+-- FOLLOWS
+CREATE TABLE follows (
+    id SERIAL PRIMARY KEY,
+    follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    followed_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT now()
+);
+
 -- ORDERS
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
@@ -74,6 +84,15 @@ CREATE TABLE purchases (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
     completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE payments (
+    id SERIAL PRIMARY KEY,
+    txn_id VARCHAR(100) UNIQUE NOT NULL,
+    order_number VARCHAR(100),
+    amount VARCHAR(50),
+    status VARCHAR(50),
     created_at TIMESTAMP DEFAULT now()
 );
 
@@ -94,3 +113,6 @@ CREATE INDEX idx_likes_post_id ON likes(post_id);
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_purchases_user_id ON purchases(user_id);
 CREATE INDEX idx_saved_posts_user_id ON saved_posts(user_id);
+CREATE INDEX idx_follows_follower_id ON follows(follower_id);
+CREATE INDEX idx_follows_followed_id ON follows(followed_id);
+CREATE INDEX idx_payments_txn_id ON payments(txn_id);

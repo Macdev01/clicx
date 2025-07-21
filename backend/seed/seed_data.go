@@ -2,11 +2,13 @@ package seed
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
+
 	"go-backend/config"
 	"go-backend/database"
 	"go-backend/models"
-	"math/rand"
-	"time"
+	"go-backend/utils"
 
 	"go.uber.org/zap"
 
@@ -16,10 +18,11 @@ import (
 
 func truncateAllTables() error {
 	err := database.DB.Exec(`
-		TRUNCATE TABLE 
-			admins, users, model_profiles, posts, orders, media, comments 
-		RESTART IDENTITY CASCADE
-	`).Error
+               TRUNCATE TABLE
+                       users, model_profiles, posts, media, comments, likes,
+                       orders, payments, purchases, saved_posts, follows, referrals, logs
+               RESTART IDENTITY CASCADE
+       `).Error
 	if err != nil {
 		return fmt.Errorf("ошибка при очистке таблиц: %w", err)
 	}
@@ -53,6 +56,13 @@ func RunUsers() ([]models.User, error) {
 
 	if err := database.DB.Create(&users).Error; err != nil {
 		return nil, fmt.Errorf("ошибка при создании Users: %w", err)
+	}
+
+	// Генерируем реферальные коды
+	for i := range users {
+		code := utils.GenerateReferralCode(8)
+		users[i].ReferralCode = &code
+		database.DB.Model(&users[i]).Update("referral_code", code)
 	}
 	zap.S().Infof("Сидировано Users: %d (включая админа)", len(users))
 	return users, nil
@@ -125,6 +135,92 @@ func RunComments(posts []models.Post, users []models.User) error {
 	return nil
 }
 
+func RunLikes(posts []models.Post, users []models.User) error {
+	var likes []models.Like
+	for i := 0; i < 20; i++ {
+		likes = append(likes, models.Like{
+			UserID: users[rand.Intn(len(users))].ID,
+			PostID: posts[rand.Intn(len(posts))].ID,
+		})
+	}
+	return database.DB.Create(&likes).Error
+}
+
+func RunFollows(users []models.User) error {
+	var follows []models.Follow
+	for i := 1; i < len(users); i++ {
+		follows = append(follows, models.Follow{
+			FollowerID: users[i].ID,
+			FollowedID: users[0].ID,
+		})
+	}
+	return database.DB.Create(&follows).Error
+}
+
+func RunOrders(users []models.User) ([]models.Order, error) {
+	var orders []models.Order
+	for _, u := range users {
+		orders = append(orders, models.Order{
+			UserID: u.ID,
+			Summ:   rand.Intn(500) + 10,
+		})
+	}
+	return orders, database.DB.Create(&orders).Error
+}
+
+func RunPayments(orders []models.Order) error {
+	var payments []models.Payment
+	for i, o := range orders {
+		payments = append(payments, models.Payment{
+			TxnID:       uuid.NewString(),
+			OrderNumber: fmt.Sprintf("ORD-%d", i+1),
+			Amount:      fmt.Sprintf("%d", o.Summ),
+			Status:      "paid",
+		})
+	}
+	return database.DB.Create(&payments).Error
+}
+
+func RunPurchases(posts []models.Post, users []models.User) error {
+	var purchases []models.Purchase
+	for i := 0; i < 10; i++ {
+		purchases = append(purchases, models.Purchase{
+			UserID:    users[rand.Intn(len(users))].ID,
+			PostID:    posts[rand.Intn(len(posts))].ID,
+			Completed: true,
+		})
+	}
+	return database.DB.Create(&purchases).Error
+}
+
+func RunSavedPosts(posts []models.Post, users []models.User) error {
+	var saved []models.SavedPost
+	for i := 0; i < 10; i++ {
+		saved = append(saved, models.SavedPost{
+			UserID:    users[rand.Intn(len(users))].ID,
+			PostID:    posts[rand.Intn(len(posts))].ID,
+			CreatedAt: time.Now(),
+		})
+	}
+	return database.DB.Create(&saved).Error
+}
+
+func RunReferrals(users []models.User) error {
+	if len(users) < 2 {
+		return nil
+	}
+	var refs []models.Referral
+	for i := 1; i < len(users); i++ {
+		refs = append(refs, models.Referral{
+			UserID:        users[0].ID,
+			ReferralCode:  *users[0].ReferralCode,
+			InvitedUserID: users[i].ID,
+			CreatedAt:     time.Now(),
+		})
+	}
+	return database.DB.Create(&refs).Error
+}
+
 func SeedData() error {
 	config.LoadConfig()
 	database.InitDB()
@@ -145,6 +241,28 @@ func SeedData() error {
 		return err
 	}
 	if err := RunComments(posts, users); err != nil {
+		return err
+	}
+	if err := RunLikes(posts, users); err != nil {
+		return err
+	}
+	if err := RunFollows(users); err != nil {
+		return err
+	}
+	orders, err := RunOrders(users)
+	if err != nil {
+		return err
+	}
+	if err := RunPayments(orders); err != nil {
+		return err
+	}
+	if err := RunPurchases(posts, users); err != nil {
+		return err
+	}
+	if err := RunSavedPosts(posts, users); err != nil {
+		return err
+	}
+	if err := RunReferrals(users); err != nil {
 		return err
 	}
 	zap.L().Info("Сидирование завершено успешно")
