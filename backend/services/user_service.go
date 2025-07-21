@@ -32,7 +32,7 @@ func CreateUser(user *models.User) error {
 	if err := database.DB.Create(user).Error; err != nil {
 		return err
 	}
-	code := utils.GenerateReferralCode(int(user.ID))
+	code := utils.GenerateReferralCode(8)
 	user.ReferralCode = &code
 	if err := database.DB.Model(user).Update("referral_code", code).Error; err != nil {
 		return err
