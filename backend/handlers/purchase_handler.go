@@ -45,15 +45,15 @@ func BuyContent(c *gin.Context) {
 	}
 
 	// Проверка баланса
-	if float64(user.Balance) < post.Price {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient funds"})
-		return
-	}
+        if user.Balance < post.Price {
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient funds"})
+                return
+        }
 
 	// Транзакция
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
 		// Списываем деньги
-		user.Balance -= int(post.Price)
+                user.Balance -= post.Price
 		if err := tx.Save(&user).Error; err != nil {
 			return err
 		}
