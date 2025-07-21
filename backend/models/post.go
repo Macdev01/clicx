@@ -13,7 +13,7 @@ type Post struct {
 	IsPremium   bool      `json:"isPremium"`
 	PublishedAt time.Time `json:"published_time"`
 	LikesCount  int       `json:"likes_count"`
-	Price       float64   `json:"price"`
+	Price       int       `json:"price"`
 
 	UserID       uint         `json:"-"`
 	User         User         `json:"user"`

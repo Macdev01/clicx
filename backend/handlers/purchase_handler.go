@@ -45,7 +45,7 @@ func BuyContent(c *gin.Context) {
 	}
 
 	// Проверка баланса
-	if float64(user.Balance) < post.Price {
+	if (user.Balance) < post.Price {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient funds"})
 		return
 	}

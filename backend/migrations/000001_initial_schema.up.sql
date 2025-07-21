@@ -30,7 +30,7 @@ CREATE TABLE posts (
     is_premium BOOLEAN DEFAULT false,
     published_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     likes_count INTEGER DEFAULT 0,
-    price DOUBLE PRECISION DEFAULT 0,
+    price INTEGER DEFAULT 0,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     model_id INTEGER REFERENCES model_profiles(id) ON DELETE SET NULL
 );
