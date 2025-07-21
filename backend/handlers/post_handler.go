@@ -10,6 +10,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// GetPosts godoc
+// @Summary      List posts
+// @Tags         posts
+// @Produce      json
+// @Success      200 {array} models.Post
+// @Router       /posts [get]
 func GetPosts(c *gin.Context) {
 	var posts []models.Post
 	if err := database.DB.Preload("User").
@@ -23,6 +29,14 @@ func GetPosts(c *gin.Context) {
 	c.JSON(http.StatusOK, posts)
 }
 
+// GetPostByID godoc
+// @Summary      Get post by ID
+// @Tags         posts
+// @Produce      json
+// @Param        id   path      int  true  "Post ID"
+// @Success      200 {object} models.Post
+// @Failure      404 {object} gin.H
+// @Router       /posts/{id} [get]
 func GetPostByID(c *gin.Context) {
 	id := c.Param("id")
 	var post models.Post
@@ -54,6 +68,15 @@ func GetPostByID(c *gin.Context) {
 	c.JSON(http.StatusOK, post)
 }
 
+// CreatePost godoc
+// @Summary      Create post
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Param        post  body      models.Post  true  "Post"
+// @Success      201 {object} models.Post
+// @Failure      400 {object} gin.H
+// @Router       /posts [post]
 func CreatePost(c *gin.Context) {
 	var post models.Post
 	if err := c.ShouldBindJSON(&post); err != nil {
