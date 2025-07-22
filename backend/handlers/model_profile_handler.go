@@ -6,24 +6,35 @@ import (
 	"net/http"
 	"strconv"
 
+	"go-backend/dto"
+	"go-backend/repository"
+	"go-backend/services"
+	"go-backend/utils"
+
 	"github.com/gin-gonic/gin"
 )
 
 type ModelProfileInput struct {
-	UserID uint   `json:"user_id" binding:"required"`
-	Name   string `json:"name"`
-	Bio    string `json:"bio"`
+	UserID uint   `json:"user_id" binding:"required" validate:"required"`
+	Name   string `json:"name" validate:"required,min=2,max=64"`
+	Bio    string `json:"bio" validate:"max=512"`
 	Banner string `json:"banner"`
 }
 
 func GetModelProfiles(c *gin.Context) {
-	var profiles []models.ModelProfile
-	if err := database.DB.Preload("User").Find(&profiles).Error; err != nil {
+	limitStr := c.DefaultQuery("limit", "20")
+	offsetStr := c.DefaultQuery("offset", "0")
+	limit, _ := strconv.Atoi(limitStr)
+	offset, _ := strconv.Atoi(offsetStr)
+	profileRepo := &repository.GormModelProfileRepository{DB: database.GetDB()}
+	service := services.NewModelProfileService(profileRepo)
+	resp, err := service.GetModelProfiles(limit, offset)
+	if err != nil {
 		c.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
-	c.JSON(http.StatusOK, profiles)
+	c.JSON(http.StatusOK, resp)
 }
 
 func GetModelProfileByID(c *gin.Context) {
@@ -31,45 +42,30 @@ func GetModelProfileByID(c *gin.Context) {
 	var profile models.ModelProfile
 	if err := database.DB.Preload("User").First(&profile, id).Error; err != nil {
 		c.Error(err)
-		c.AbortWithStatus(http.StatusNotFound)
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
 		return
 	}
 	c.JSON(http.StatusOK, profile)
 }
 
 func CreateModelProfile(c *gin.Context) {
-	var input ModelProfileInput
+	var input dto.ModelProfileCreateDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input: " + err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
-
-	var user models.User
-	if err := database.DB.First(&user, input.UserID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+	if err := utils.ValidateStruct(input); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
 		return
 	}
-
-	var existing models.ModelProfile
-	if err := database.DB.Where("user_id = ?", input.UserID).First(&existing).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "model profile already exists for this user"})
+	profileRepo := &repository.GormModelProfileRepository{DB: database.GetDB()}
+	service := services.NewModelProfileService(profileRepo)
+	resp, err := service.CreateModelProfile(&input)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Could not create model profile"})
 		return
 	}
-
-	profile := models.ModelProfile{
-		UserID: input.UserID,
-		Name:   input.Name,
-		Bio:    input.Bio,
-		Banner: input.Banner,
-	}
-
-	if err := database.DB.Create(&profile).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create model profile: " + err.Error()})
-		return
-	}
-
-	database.DB.Preload("User").First(&profile, profile.ID)
-	c.JSON(http.StatusCreated, profile)
+	c.JSON(http.StatusCreated, resp)
 }
 
 func UpdateModelProfile(c *gin.Context) {

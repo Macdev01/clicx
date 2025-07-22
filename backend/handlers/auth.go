@@ -10,24 +10,35 @@ import (
 
 func Register(c *gin.Context) {
 	var input struct {
-		Email        string `json:"email"`
-		Nickname     string `json:"nickname"`
-		Password     string `json:"password"`
+		Email        string `json:"email" validate:"required,email"`
+		Nickname     string `json:"nickname" validate:"required,min=3,max=32"`
+		Password     string `json:"password" validate:"required,min=8"`
 		ReferralCode string `json:"referral_code"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": "Invalid input"})
+		return
+	}
+	if err := utils.ValidateStruct(input); err != nil {
+		c.JSON(400, gin.H{"error": "Validation failed", "details": err.Error()})
+		return
+	}
+
+	// Hash the password
+	hashedPassword, err := utils.HashPassword(input.Password)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Internal server error"})
 		return
 	}
 
 	user := models.User{
 		Email:    input.Email,
 		Nickname: input.Nickname,
-		Password: input.Password, // хэшируй!
+		Password: hashedPassword,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": "Could not create user"})
 		return
 	}
 

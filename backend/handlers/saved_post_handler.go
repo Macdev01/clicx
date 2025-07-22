@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -9,6 +10,8 @@ import (
 
 	"go-backend/database"
 	"go-backend/models"
+	"go-backend/repository"
+	"go-backend/services"
 )
 
 // ToggleSavePost adds or removes a post from user's saved list.
@@ -28,23 +31,22 @@ func ToggleSavePost(c *gin.Context) {
 	}
 
 	var saved models.SavedPost
-	err = database.DB.Where("user_id = ? AND post_id = ?", user.ID, postID).First(&saved).Error
-	if err == nil {
+	if err := database.DB.Where("user_id = ? AND post_id = ?", user.ID, postID).First(&saved).Error; err == nil {
 		if err := database.DB.Delete(&saved).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unsave"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not unsave post"})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "post unsaved"})
 		return
 	}
 	if err != nil && err != gorm.ErrRecordNotFound {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
 	saved = models.SavedPost{UserID: user.ID, PostID: postID}
 	if err := database.DB.Create(&saved).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save post"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "post saved"})
@@ -53,16 +55,19 @@ func ToggleSavePost(c *gin.Context) {
 // GetSavedPosts returns posts saved by the specified user.
 func GetSavedPosts(c *gin.Context) {
 	userID := c.Param("id")
-	var posts []models.Post
-	if err := database.DB.Joins("JOIN saved_posts ON saved_posts.post_id = posts.id").
-		Where("saved_posts.user_id = ?", userID).
-		Preload("User").Preload("Media").Preload("ModelProfile").
-		Find(&posts).Error; err != nil {
+	limitStr := c.DefaultQuery("limit", "20")
+	offsetStr := c.DefaultQuery("offset", "0")
+	limit, _ := strconv.Atoi(limitStr)
+	offset, _ := strconv.Atoi(offsetStr)
+	savedPostRepo := &repository.GormSavedPostRepository{DB: database.GetDB()}
+	service := services.NewSavedPostService(savedPostRepo)
+	resp, err := service.GetSavedPosts(userID, limit, offset)
+	if err != nil {
 		c.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusOK, posts)
+	c.JSON(http.StatusOK, resp)
 }
 
 // GetPurchasedPosts returns posts purchased by the specified user.

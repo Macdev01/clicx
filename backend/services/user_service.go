@@ -1,35 +1,73 @@
 package services
 
 import (
-	"strings"
-
 	"go-backend/database"
+	"go-backend/dto"
 	"go-backend/models"
+	"go-backend/repository"
 	"go-backend/utils"
+	"strings"
 )
 
-func GetUsers() ([]models.User, error) {
-	var users []models.User
-	if err := database.DB.Find(&users).Error; err != nil {
+type UserService struct {
+	Repo repository.UserRepository
+}
+
+func NewUserService(repo repository.UserRepository) *UserService {
+	return &UserService{Repo: repo}
+}
+
+func (s *UserService) GetUsers(limit, offset int) ([]dto.UserResponseDTO, error) {
+	users, err := s.Repo.FindAll(limit, offset)
+	if err != nil {
 		return nil, err
 	}
-	return users, nil
-}
-
-func GetUserByID(id string) (models.User, error) {
-	var user models.User
-	if err := database.DB.First(&user, id).Error; err != nil {
-		return user, err
+	resp := make([]dto.UserResponseDTO, 0, len(users))
+	for _, user := range users {
+		resp = append(resp, dto.UserResponseDTO{
+			ID:           user.ID,
+			Email:        user.Email,
+			Nickname:     user.Nickname,
+			Balance:      user.Balance,
+			AvatarURL:    user.AvatarURL,
+			IsAdmin:      user.IsAdmin,
+			ReferralCode: user.ReferralCode,
+			ReferredBy:   user.ReferredBy,
+		})
 	}
-	return user, nil
+	return resp, nil
 }
 
-func CreateUser(user *models.User) error {
+func (s *UserService) GetUserByID(id string) (dto.UserResponseDTO, error) {
+	user, err := s.Repo.FindByID(id)
+	if err != nil {
+		return dto.UserResponseDTO{}, err
+	}
+	resp := dto.UserResponseDTO{
+		ID:           user.ID,
+		Email:        user.Email,
+		Nickname:     user.Nickname,
+		Balance:      user.Balance,
+		AvatarURL:    user.AvatarURL,
+		IsAdmin:      user.IsAdmin,
+		ReferralCode: user.ReferralCode,
+		ReferredBy:   user.ReferredBy,
+	}
+	return resp, nil
+}
+
+func (s *UserService) CreateUser(user *models.User) error {
 	if user.Nickname == "" {
 		user.Nickname = generateNickname(user.Email)
 	}
-
-	if err := database.DB.Create(user).Error; err != nil {
+	if user.Password != "" {
+		hashed, err := utils.HashPassword(user.Password)
+		if err != nil {
+			return err
+		}
+		user.Password = hashed
+	}
+	if err := s.Repo.Create(user); err != nil {
 		return err
 	}
 	code := utils.GenerateReferralCode(8)
@@ -44,25 +82,26 @@ func generateNickname(email string) string {
 	return "user_" + strings.Split(email, "@")[0]
 }
 
-func UpdateUser(user *models.User) error {
-	return database.DB.Save(user).Error
+func (s *UserService) UpdateUser(user *models.User) error {
+	return s.Repo.Update(user)
 }
 
-func DeleteUser(id string) error {
-	return database.DB.Delete(&models.User{}, id).Error
+func (s *UserService) DeleteUser(id string) error {
+	return s.Repo.Delete(id)
 }
 
-func GetOrCreateUser(email, avatar, refCode string) (models.User, error) {
-	user, err := database.GetUserByEmail(email)
+func (s *UserService) GetOrCreateUser(email, avatar, refCode string) (*models.User, error) {
+	user, err := s.Repo.FindByEmail(email)
 	if err != nil {
-		if err == database.ErrUserNotFound {
-			user, err = database.CreateUser(email, avatar, refCode)
+		if err == repository.ErrUserNotFound {
+			userPtr, err := s.Repo.CreateUser(email, avatar, refCode)
 			if err != nil {
-				return models.User{}, err
+				return nil, err
 			}
+			return userPtr, nil
 		} else {
-			return models.User{}, err
+			return nil, err
 		}
 	}
-	return *user, nil
+	return &user, nil
 }

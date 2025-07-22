@@ -15,7 +15,11 @@ func TestUserHandlers(t *testing.T) {
 	r := SetupRouter(t)
 
 	// create user
-	body, _ := json.Marshal(models.User{Email: "test@example.com"})
+	body, _ := json.Marshal(map[string]interface{}{
+		"email":    "test@example.com",
+		"nickname": "testuser",
+		"password": "password123",
+	})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -43,9 +47,13 @@ func TestUserHandlers(t *testing.T) {
 	}
 
 	// update user
-	body, _ = json.Marshal(created)
+	updateBody, _ := json.Marshal(map[string]interface{}{
+		"email":    created.Email,
+		"nickname": created.Nickname,
+		"password": "password123",
+	})
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodPut, "/users/"+jsonID(created.ID), bytes.NewReader(body))
+	req, _ = http.NewRequest(http.MethodPut, "/users/"+jsonID(created.ID), bytes.NewReader(updateBody))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {

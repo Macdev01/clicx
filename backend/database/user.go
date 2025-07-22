@@ -25,11 +25,15 @@ func GetUserByEmail(email string) (*models.User, error) {
 
 func CreateUser(email string, avatar string, refCode string) (*models.User, error) {
 	code := utils.GenerateReferralCode(8)
+	// For demo, use a default password or generate one, but hash it
+	defaultPassword := "changeme123"
+	hashedPassword, _ := utils.HashPassword(defaultPassword)
 	user := &models.User{
 		Email:        email,
 		AvatarURL:    avatar,
 		Nickname:     generateNickname(email),
 		ReferralCode: &code,
+		Password:     hashedPassword,
 	}
 	if err := DB.Create(user).Error; err != nil {
 		return nil, err

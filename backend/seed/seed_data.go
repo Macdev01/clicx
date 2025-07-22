@@ -34,10 +34,11 @@ func RunUsers() ([]models.User, error) {
 	var users []models.User
 
 	// Добавляем админа первым
+	hashedAdminPassword, _ := utils.HashPassword("admin123")
 	users = append(users, models.User{
 		Email:     "admin@example.com",
 		Nickname:  "admin",
-		Password:  "admin123", // ❗ лучше хэшировать
+		Password:  hashedAdminPassword, // hashed
 		Balance:   1000,
 		AvatarURL: faker.URL(),
 		IsAdmin:   true,
@@ -45,10 +46,12 @@ func RunUsers() ([]models.User, error) {
 
 	// Генерируем остальных пользователей
 	for i := 0; i < 10; i++ {
+		rawPassword := faker.Password()
+		hashedPassword, _ := utils.HashPassword(rawPassword)
 		users = append(users, models.User{
 			Email:     faker.Email(),
 			Nickname:  faker.Username(),
-			Password:  faker.Password(),
+			Password:  hashedPassword, // hashed
 			Balance:   rand.Intn(1000),
 			AvatarURL: faker.URL(),
 		})

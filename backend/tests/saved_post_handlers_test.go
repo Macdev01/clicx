@@ -6,16 +6,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
-
-	"go-backend/models"
 )
 
 func TestSavedPostHandlers(t *testing.T) {
 	r := SetupRouter(t)
 	user := createUser(t, r)
 	model := createModel(t, r, user.ID)
-	post := models.Post{Text: "save", UserID: user.ID, ModelID: model.ID, PublishedAt: time.Now()}
+	post := map[string]interface{}{
+		"text":      "save",
+		"isPremium": false,
+		"userId":    user.ID,
+		"modelId":   model.ID,
+	}
 	body, _ := json.Marshal(post)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/posts", bytes.NewReader(body))
@@ -24,10 +26,14 @@ func TestSavedPostHandlers(t *testing.T) {
 	if w.Code != http.StatusCreated {
 		t.Fatalf("create post expected 201, got %d", w.Code)
 	}
-	json.Unmarshal(w.Body.Bytes(), &post)
+	type PostResp struct {
+		ID string `json:"id"`
+	}
+	var postResp PostResp
+	json.Unmarshal(w.Body.Bytes(), &postResp)
 
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodPost, "/posts/"+post.ID.String()+"/save", nil)
+	req, _ = http.NewRequest(http.MethodPost, "/posts/"+postResp.ID+"/save", nil)
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("save expected 200, got %d", w.Code)

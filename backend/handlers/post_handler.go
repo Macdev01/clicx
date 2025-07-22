@@ -4,7 +4,13 @@ import (
 	"go-backend/database"
 	"go-backend/models"
 	"net/http"
+	"strconv"
 	"time"
+
+	"go-backend/dto"
+	"go-backend/repository"
+	"go-backend/services"
+	"go-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -17,16 +23,19 @@ import (
 // @Success      200 {array} models.Post
 // @Router       /posts [get]
 func GetPosts(c *gin.Context) {
-	var posts []models.Post
-	if err := database.DB.Preload("User").
-		Preload("Media").
-		Preload("ModelProfile").
-		Find(&posts).Error; err != nil {
+	limitStr := c.DefaultQuery("limit", "20")
+	offsetStr := c.DefaultQuery("offset", "0")
+	limit, _ := strconv.Atoi(limitStr)
+	offset, _ := strconv.Atoi(offsetStr)
+	postRepo := &repository.GormPostRepository{DB: database.GetDB()}
+	service := services.NewPostService(postRepo)
+	resp, err := service.GetPosts(limit, offset)
+	if err != nil {
 		c.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusOK, posts)
+	c.JSON(http.StatusOK, resp)
 }
 
 // GetPostByID godoc
@@ -51,7 +60,7 @@ func GetPostByID(c *gin.Context) {
 
 	if err != nil {
 		c.Error(err)
-		c.AbortWithStatus(http.StatusNotFound)
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
 
@@ -78,18 +87,25 @@ func GetPostByID(c *gin.Context) {
 // @Failure      400 {object} gin.H
 // @Router       /posts [post]
 func CreatePost(c *gin.Context) {
-	var post models.Post
-	if err := c.ShouldBindJSON(&post); err != nil {
+	var input dto.PostCreateDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.Error(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	if err := database.DB.Create(&post).Error; err != nil {
+	if err := utils.ValidateStruct(input); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
+		return
+	}
+	postRepo := &repository.GormPostRepository{DB: database.GetDB()}
+	service := services.NewPostService(postRepo)
+	resp, err := service.CreatePost(&input)
+	if err != nil {
 		c.Error(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusCreated, post)
+	c.JSON(http.StatusCreated, resp)
 }
 
 func UpdatePost(c *gin.Context) {

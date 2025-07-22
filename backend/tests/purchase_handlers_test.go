@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"go-backend/database"
 	"go-backend/models"
@@ -18,33 +17,35 @@ func TestPurchaseHandlers(t *testing.T) {
 	if err := database.DB.First(&user, 1).Error; err != nil {
 		t.Fatalf("failed to load admin user: %v", err)
 	}
+	// Set balance directly in DB for test setup
 	user.Balance = 10
-	// update user to set balance
-	body, _ := json.Marshal(user)
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodPut, "/users/"+jsonID(user.ID), bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("update user expected 200, got %d", w.Code)
+	if err := database.DB.Save(&user).Error; err != nil {
+		t.Fatalf("failed to set user balance: %v", err)
 	}
 	model := createModel(t, r, user.ID)
-	post := models.Post{Text: "p", UserID: user.ID, ModelID: model.ID, PublishedAt: time.Now(), IsPremium: true, Price: 5}
-	body, _ = json.Marshal(post)
-	w = httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodPost, "/posts", bytes.NewReader(body))
+	postBody, _ := json.Marshal(map[string]interface{}{
+		"text":      "p",
+		"isPremium": true,
+		"userId":    user.ID,
+		"modelId":   model.ID,
+		"price":     5,
+	})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/posts", bytes.NewReader(postBody))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusCreated {
 		t.Fatalf("create post expected 201, got %d", w.Code)
 	}
-	json.Unmarshal(w.Body.Bytes(), &post)
+	var postResp struct {
+		ID string `json:"id"`
+	}
+	json.Unmarshal(w.Body.Bytes(), &postResp)
 
 	// buy content
-	buy := map[string]interface{}{"user_id": user.ID, "post_id": post.ID.String()}
-	body, _ = json.Marshal(buy)
+	buyBody, _ := json.Marshal(map[string]interface{}{"user_id": user.ID, "post_id": postResp.ID})
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodPost, "/purchases", bytes.NewReader(body))
+	req, _ = http.NewRequest(http.MethodPost, "/purchases", bytes.NewReader(buyBody))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {

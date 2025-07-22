@@ -9,13 +9,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"go-backend/models"
+
+	"github.com/gin-gonic/gin"
 )
 
 func createUser(t *testing.T, r *gin.Engine) models.User {
 	t.Helper()
-	body, _ := json.Marshal(models.User{Email: fmt.Sprintf("u%v@example.com", time.Now().UnixNano())})
+	email := fmt.Sprintf("u%v@example.com", time.Now().UnixNano())
+	nickname := fmt.Sprintf("user%v", time.Now().UnixNano())
+	password := "password123"
+	body, _ := json.Marshal(map[string]interface{}{
+		"email":    email,
+		"nickname": nickname,
+		"password": password,
+	})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

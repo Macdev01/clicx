@@ -2,9 +2,9 @@ package models
 
 type User struct {
 	ID        uint   `gorm:"primaryKey"`
-	Email     string `gorm:"unique" json:"email"`
-	Nickname  string `gorm:"unique" json:"nickname"`
-	Password  string `json:"-"`
+	Email     string `gorm:"unique" json:"email" validate:"required,email"`
+	Nickname  string `gorm:"unique" json:"nickname" validate:"required,min=3,max=32"`
+	Password  string `json:"-" validate:"required,min=8"`
 	Balance   int    `json:"balance"`
 	AvatarURL string `json:"avatarUrl"`
 	IsAdmin   bool   `gorm:"default:false" json:"isAdmin"`

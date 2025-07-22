@@ -2,8 +2,11 @@ package middleware
 
 import (
 	"context"
+	"net/http"
 	"strings"
 
+	"go-backend/database"
+	"go-backend/repository"
 	"go-backend/services"
 
 	"github.com/gin-gonic/gin"
@@ -32,13 +35,14 @@ func UserMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		avatar, _ := decoded.Claims["picture"].(string)
 		refCode := c.GetHeader("X-Referral-Code")
 
-		user, err := services.GetOrCreateUser(email, avatar, refCode)
+		userRepo := &repository.GormUserRepository{DB: database.GetDB()}
+		userService := services.NewUserService(userRepo)
+		user, err := userService.GetOrCreateUser(email, avatar, refCode)
 		if err != nil {
-			logger.Error("failed to load user", zap.Error(err))
-			c.Next()
+			logger.Error("Failed to get or create user", zap.Error(err))
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-
 		c.Set("user", user)
 		c.Next()
 	}

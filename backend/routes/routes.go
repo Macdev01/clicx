@@ -14,8 +14,8 @@ import (
 func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 	// Swagger documentation
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	// Users
-	users := r.Group("/users")
+	// Users (protected)
+	users := r.Group("/users", middleware.UserMiddleware(logger))
 	{
 		users.GET("", handlers.GetUsers)
 		users.GET("/:id", handlers.GetUserByID)
@@ -27,7 +27,7 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 		users.DELETE("/:id", handlers.DeleteUser)
 	}
 
-	// Posts
+	// Posts (GET public, others protected)
 	posts := r.Group("/posts")
 	{
 		posts.GET("", handlers.GetPosts)
@@ -40,8 +40,8 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 		posts.POST("/:id/save", middleware.UserMiddleware(logger), handlers.ToggleSavePost)
 	}
 
-	// Orders
-	orders := r.Group("/orders")
+	// Orders (protected)
+	orders := r.Group("/orders", middleware.UserMiddleware(logger))
 	{
 		orders.GET("", handlers.GetOrders)
 		orders.GET("/:id", handlers.GetOrderByID)
@@ -50,8 +50,8 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 		orders.DELETE("/:id", handlers.DeleteOrder)
 	}
 
-	// Models
-	models := r.Group("/models")
+	// Models (protected)
+	models := r.Group("/models", middleware.UserMiddleware(logger))
 	{
 		models.GET("", handlers.GetModelProfiles)
 		models.GET("/:id", handlers.GetModelProfileByID)
@@ -60,7 +60,7 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 		models.DELETE("/:id", handlers.DeleteModelProfile)
 	}
 
-	// Media / Videos
+	// Media / Videos (protected)
 	videos := r.Group("/videos", middleware.UserMiddleware(logger))
 	{
 		videos.POST("/upload", handlers.UploadVideo)    // Загрузка видео для поста
@@ -69,7 +69,7 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 		videos.DELETE("/:id", handlers.DeleteVideo)     // Удалить видео
 	}
 
-	// Покупка контента
+	// Покупка контента (protected)
 	purchases := r.Group("/purchases", middleware.UserMiddleware(logger))
 	{
 		purchases.POST("", handlers.BuyContent)                   // Покупка
@@ -82,8 +82,8 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 	r.GET("/followers", middleware.UserMiddleware(logger), handlers.GetFollowers)
 	r.GET("/referrals", middleware.UserMiddleware(logger), handlers.GetReferrals)
 
-	// Админские маршруты
-	admin := r.Group("/admin", middleware.UserMiddleware(logger))
+	// Админские маршруты (admin only)
+	admin := r.Group("/admin", middleware.UserMiddleware(logger), middleware.AdminMiddleware())
 	{
 		admin.POST("/posts/upload", handlers.CreatePostWithMedia) // Создать пост с медиа
 	}

@@ -6,9 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
-
-	"go-backend/models"
 )
 
 func TestPostHandlers(t *testing.T) {
@@ -17,8 +14,12 @@ func TestPostHandlers(t *testing.T) {
 	model := createModel(t, r, user.ID)
 
 	// create post
-	post := models.Post{Text: "hello", UserID: user.ID, ModelID: model.ID, PublishedAt: time.Now()}
-	body, _ := json.Marshal(post)
+	body, _ := json.Marshal(map[string]interface{}{
+		"text":      "hello",
+		"isPremium": false,
+		"userId":    user.ID,
+		"modelId":   model.ID,
+	})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/posts", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -26,7 +27,11 @@ func TestPostHandlers(t *testing.T) {
 	if w.Code != http.StatusCreated {
 		t.Fatalf("create post expected 201, got %d", w.Code)
 	}
-	json.Unmarshal(w.Body.Bytes(), &post)
+	type PostResp struct {
+		ID string `json:"id"`
+	}
+	var postResp PostResp
+	json.Unmarshal(w.Body.Bytes(), &postResp)
 
 	// list posts
 	w = httptest.NewRecorder()
@@ -38,7 +43,7 @@ func TestPostHandlers(t *testing.T) {
 
 	// get post by id
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodGet, "/posts/"+post.ID.String(), nil)
+	req, _ = http.NewRequest(http.MethodGet, "/posts/"+postResp.ID, nil)
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("get post expected 200, got %d", w.Code)
@@ -46,7 +51,7 @@ func TestPostHandlers(t *testing.T) {
 
 	// delete post
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodDelete, "/posts/"+post.ID.String(), nil)
+	req, _ = http.NewRequest(http.MethodDelete, "/posts/"+postResp.ID, nil)
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("delete post expected 200, got %d", w.Code)

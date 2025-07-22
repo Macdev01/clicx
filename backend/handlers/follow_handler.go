@@ -21,7 +21,7 @@ func FollowUser(c *gin.Context) {
 	targetID := c.Param("id")
 	var target models.User
 	if err := database.DB.First(&target, targetID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
@@ -34,7 +34,7 @@ func FollowUser(c *gin.Context) {
 
 	follow := models.Follow{FollowerID: user.ID, FollowedID: target.ID}
 	if err := database.DB.Create(&follow).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not follow user"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "followed"})
@@ -56,7 +56,7 @@ func UnfollowUser(c *gin.Context) {
 		return
 	}
 	if err := database.DB.Delete(&f).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not unfollow user"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "unfollowed"})
@@ -73,7 +73,7 @@ func GetFollowers(c *gin.Context) {
 
 	var followers []models.Follow
 	if err := database.DB.Where("followed_id = ?", user.ID).Find(&followers).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, followers)
