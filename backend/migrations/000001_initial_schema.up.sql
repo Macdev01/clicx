@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- USERS
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
     nickname VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -11,19 +11,19 @@ CREATE TABLE users (
     avatar_url VARCHAR(500),
     is_admin BOOLEAN DEFAULT FALSE,
     referral_code VARCHAR(20) UNIQUE,
-    referred_by INTEGER REFERENCES users(id)
+    referred_by UUID REFERENCES users(id)
 );
 
 -- MODEL PROFILES
 CREATE TABLE model_profiles (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255),
     bio TEXT,
     banner VARCHAR(500)
 );
 
--- POSTS (UUID PK)
+-- POSTS
 CREATE TABLE posts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     text TEXT,
@@ -31,13 +31,13 @@ CREATE TABLE posts (
     published_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     likes_count INTEGER DEFAULT 0,
     price INTEGER DEFAULT 0,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    model_id INTEGER REFERENCES model_profiles(id) ON DELETE SET NULL
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    model_id UUID REFERENCES model_profiles(id) ON DELETE SET NULL
 );
 
 -- MEDIA
 CREATE TABLE media (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
     type TEXT NOT NULL,
     url TEXT NOT NULL,
@@ -46,49 +46,49 @@ CREATE TABLE media (
     created_at TIMESTAMP DEFAULT now()
 );
 
--- COMMENTS (UUID reference)
+-- COMMENTS
 CREATE TABLE comments (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
--- LIKES (UUID reference)
+-- LIKES
 CREATE TABLE likes (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT now()
 );
 
 -- FOLLOWS
 CREATE TABLE follows (
-    id SERIAL PRIMARY KEY,
-    follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    followed_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    follower_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    followed_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT now()
 );
 
 -- ORDERS
 CREATE TABLE orders (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     summ INTEGER NOT NULL
 );
 
 -- PURCHASES
 CREATE TABLE purchases (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
     completed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE payments (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     txn_id VARCHAR(100) UNIQUE NOT NULL,
     order_number VARCHAR(100),
     amount VARCHAR(50),
@@ -98,11 +98,13 @@ CREATE TABLE payments (
 
 -- SAVED POSTS
 CREATE TABLE saved_posts (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT now()
 );
+
+-- Add other tables (referrals, logs, etc.) as needed with UUID PKs and FKs
 
 -- ✅ INDEXES for performance
 CREATE INDEX idx_posts_user_id ON posts(user_id);

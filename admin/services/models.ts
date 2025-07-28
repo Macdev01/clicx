@@ -1,20 +1,20 @@
 import { internalApi } from '@/shared/config/api'
 
 export interface Model {
-  id: number
-  user_id: number
+  id: string
+  user_id: string
   bio: string
   banner: string
 }
 
 export interface CreateModelData {
-  user_id: number
+  user_id: string
   bio: string
   banner: string
 }
 
 export interface UpdateModelData {
-  user_id?: number
+  user_id?: string
   bio?: string
   banner?: string
 }
@@ -27,7 +27,7 @@ export const modelService = {
   },
 
   // Get a specific model
-  getModel: async (id: number) => {
+  getModel: async (id: string) => {
     const response = await internalApi.get<Model>(`/models/${id}`)
     return response.data
   },
@@ -39,13 +39,13 @@ export const modelService = {
   },
 
   // Update a model
-  updateModel: async (id: number, data: UpdateModelData) => {
+  updateModel: async (id: string, data: UpdateModelData) => {
     const response = await internalApi.put<Model>(`/models/${id}`, data)
     return response.data
   },
 
   // Delete a model
-  deleteModel: async (id: number) => {
+  deleteModel: async (id: string) => {
     const response = await internalApi.delete<void>(`/models/${id}`)
     return response.data
   }

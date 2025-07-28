@@ -3,6 +3,7 @@ package repository
 import (
 	"go-backend/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -10,7 +11,7 @@ type SavedPostRepository interface {
 	FindByUserID(userID string, limit, offset int) ([]models.SavedPost, error)
 	Create(saved *models.SavedPost) error
 	Delete(saved *models.SavedPost) error
-	FindByUserAndPost(userID uint, postID string) (models.SavedPost, error)
+	FindByUserAndPost(userID uuid.UUID, postID uuid.UUID) (models.SavedPost, error)
 }
 
 type GormSavedPostRepository struct {
@@ -40,7 +41,7 @@ func (r *GormSavedPostRepository) Delete(saved *models.SavedPost) error {
 	return r.DB.Delete(saved).Error
 }
 
-func (r *GormSavedPostRepository) FindByUserAndPost(userID uint, postID string) (models.SavedPost, error) {
+func (r *GormSavedPostRepository) FindByUserAndPost(userID uuid.UUID, postID uuid.UUID) (models.SavedPost, error) {
 	var saved models.SavedPost
 	if err := r.DB.Where("user_id = ? AND post_id = ?", userID, postID).First(&saved).Error; err != nil {
 		return saved, err

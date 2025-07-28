@@ -1,5 +1,5 @@
 CREATE TABLE logs (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     level VARCHAR(20),
     message TEXT,
     created_at TIMESTAMP DEFAULT now()

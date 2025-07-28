@@ -30,7 +30,7 @@ func ToggleLikePost(c *gin.Context) {
 	err = database.DB.Where("user_id = ? AND post_id = ?", user.ID, post.ID).First(&like).Error
 
 	if err == nil {
-		// Уже лайкал → удаляем
+		// Already liked → delete
 		if err := database.DB.Delete(&like).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not unlike post"})
 			return
@@ -41,8 +41,8 @@ func ToggleLikePost(c *gin.Context) {
 		return
 	}
 
-	// Добавляем лайк
-	newLike := models.Like{UserID: user.ID, PostID: post.ID}
+	// Add like
+	newLike := models.Like{ID: uuid.New(), UserID: user.ID, PostID: post.ID}
 	if err := database.DB.Create(&newLike).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not like post"})
 		return

@@ -3,12 +3,13 @@ package repository
 import (
 	"go-backend/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type PostRepository interface {
 	FindAll(limit, offset int) ([]models.Post, error)
-	FindByID(id string) (models.Post, error)
+	FindByID(id uuid.UUID) (models.Post, error)
 	Create(post *models.Post) error
 }
 
@@ -31,7 +32,7 @@ func (r *GormPostRepository) FindAll(limit, offset int) ([]models.Post, error) {
 	return posts, nil
 }
 
-func (r *GormPostRepository) FindByID(id string) (models.Post, error) {
+func (r *GormPostRepository) FindByID(id uuid.UUID) (models.Post, error) {
 	var post models.Post
 	if err := r.DB.First(&post, "id = ?", id).Error; err != nil {
 		return post, err

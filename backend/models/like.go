@@ -7,8 +7,8 @@ import (
 )
 
 type Like struct {
-	ID        uint `gorm:"primaryKey"`
-	UserID    uint
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID    uuid.UUID
 	PostID    uuid.UUID `gorm:"type:uuid" json:"post_id"`
 	CreatedAt time.Time
 }

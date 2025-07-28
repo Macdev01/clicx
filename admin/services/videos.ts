@@ -1,15 +1,15 @@
 import { internalApi } from '@/shared/config/api'
 
 export interface Video {
-  id: number
+  id: string
   title: string
   description?: string
   url: string
   thumbnail?: string
   duration: number
   isPremium: boolean
-  user_id: number
-  model_id: number
+  user_id: string
+  model_id: string
   created_at: string
   updated_at: string
 }
@@ -21,8 +21,8 @@ export interface CreateVideoData {
   thumbnail?: string
   duration: number
   isPremium: boolean
-  user_id: number
-  model_id: number
+  user_id: string
+  model_id: string
 }
 
 export interface UpdateVideoData {
@@ -42,7 +42,7 @@ export const videoService = {
   },
 
   // Get a specific video
-  getVideo: async (id: number) => {
+  getVideo: async (id: string) => {
     const response = await internalApi.get<Video>(`/videos/${id}`)
     return response.data
   },
@@ -54,13 +54,13 @@ export const videoService = {
   },
 
   // Update a video
-  updateVideo: async (id: number, data: UpdateVideoData) => {
+  updateVideo: async (id: string, data: UpdateVideoData) => {
     const response = await internalApi.put<Video>(`/videos/${id}`, data)
     return response.data
   },
 
   // Delete a video
-  deleteVideo: async (id: number) => {
+  deleteVideo: async (id: string) => {
     const response = await internalApi.delete<void>(`/videos/${id}`)
     return response.data
   }

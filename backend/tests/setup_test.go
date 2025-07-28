@@ -29,13 +29,13 @@ func SetupRouter(t *testing.T) *gin.Engine {
 	}
 
 	// create default admin user so UserMiddlewareGin can find it
-	db.Create(&models.User{Email: "admin@example.com", IsAdmin: true})
+	db.Create(&models.User{Email: "admin@example.com", IsAdmin: true, Password: "admin123"})
 
 	// minimal config
 	config.AppConfig = &config.Config{}
 
 	r := gin.Default()
-	logger, _ := logging.InitLogger("prod")
+	logger, _ := logging.InitLogger()
 	// For tests, set the first user as the authenticated user if no token provided
 	r.Use(func(c *gin.Context) {
 		if _, exists := c.Get("user"); !exists {

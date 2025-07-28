@@ -430,7 +430,7 @@ enhancedHttpClient.interceptors.addRequestInterceptor((config) => {
 
 enhancedHttpClient.interceptors.addErrorInterceptor((error) => {
   // Log errors in development
-  if (process.env.NODE_ENV === "development") {
+  if (process.env['NODE_ENV'] === "development") {
     console.error("API Error:", error)
   }
 

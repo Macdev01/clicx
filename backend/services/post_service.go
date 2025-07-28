@@ -2,9 +2,12 @@ package services
 
 import (
 	"go-backend/dto"
+	"go-backend/logging"
 	"go-backend/models"
 	"go-backend/repository"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type PostService struct {
@@ -16,8 +19,11 @@ func NewPostService(repo repository.PostRepository) *PostService {
 }
 
 func (s *PostService) GetPosts(limit, offset int) ([]dto.PostResponseDTO, error) {
+	logger := logging.GetLogger()
+	logger.Debug("GetPosts called", zap.Int("limit", limit), zap.Int("offset", offset))
 	posts, err := s.Repo.FindAll(limit, offset)
 	if err != nil {
+		logger.Error("GetPosts failed", zap.Error(err))
 		return nil, err
 	}
 	resp := make([]dto.PostResponseDTO, 0, len(posts))
@@ -33,10 +39,13 @@ func (s *PostService) GetPosts(limit, offset int) ([]dto.PostResponseDTO, error)
 			ModelID:     post.ModelID,
 		})
 	}
+	logger.Debug("GetPosts success", zap.Int("count", len(resp)))
 	return resp, nil
 }
 
 func (s *PostService) CreatePost(input *dto.PostCreateDTO) (dto.PostResponseDTO, error) {
+	logger := logging.GetLogger()
+	logger.Debug("CreatePost called", zap.String("user_id", input.UserID.String()), zap.String("model_id", input.ModelID.String()))
 	post := models.Post{
 		Text:      input.Text,
 		IsPremium: input.IsPremium,
@@ -44,6 +53,7 @@ func (s *PostService) CreatePost(input *dto.PostCreateDTO) (dto.PostResponseDTO,
 		ModelID:   input.ModelID,
 	}
 	if err := s.Repo.Create(&post); err != nil {
+		logger.Error("CreatePost failed", zap.Error(err))
 		return dto.PostResponseDTO{}, err
 	}
 	resp := dto.PostResponseDTO{
@@ -56,5 +66,6 @@ func (s *PostService) CreatePost(input *dto.PostCreateDTO) (dto.PostResponseDTO,
 		UserID:      post.UserID,
 		ModelID:     post.ModelID,
 	}
+	logger.Debug("CreatePost success", zap.String("post_id", post.ID.String()))
 	return resp, nil
 }

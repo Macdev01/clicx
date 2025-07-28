@@ -8,21 +8,16 @@ import (
 	"testing"
 
 	"go-backend/database"
-	"go-backend/models"
 )
 
 func TestPurchaseHandlers(t *testing.T) {
 	r := SetupRouter(t)
-	var user models.User
-	if err := database.DB.First(&user, 1).Error; err != nil {
-		t.Fatalf("failed to load admin user: %v", err)
-	}
+	user, model := createUserWithModel(t, r)
 	// Set balance directly in DB for test setup
 	user.Balance = 10
 	if err := database.DB.Save(&user).Error; err != nil {
 		t.Fatalf("failed to set user balance: %v", err)
 	}
-	model := createModel(t, r, user.ID)
 	postBody, _ := json.Marshal(map[string]interface{}{
 		"text":      "p",
 		"isPremium": true,
@@ -48,8 +43,8 @@ func TestPurchaseHandlers(t *testing.T) {
 	req, _ = http.NewRequest(http.MethodPost, "/purchases", bytes.NewReader(buyBody))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("buy content expected 200, got %d", w.Code)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("buy content expected 201, got %d", w.Code)
 	}
 
 	// list purchases

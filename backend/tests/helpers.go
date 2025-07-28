@@ -12,6 +12,7 @@ import (
 	"go-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func createUser(t *testing.T, r *gin.Engine) models.User {
@@ -36,9 +37,9 @@ func createUser(t *testing.T, r *gin.Engine) models.User {
 	return u
 }
 
-func createModel(t *testing.T, r *gin.Engine, userID uint) models.ModelProfile {
+func createModel(t *testing.T, r *gin.Engine, userID uuid.UUID) models.ModelProfile {
 	t.Helper()
-	body, _ := json.Marshal(gin.H{"user_id": userID, "name": "Model", "bio": "bio"})
+	body, _ := json.Marshal(gin.H{"user_id": userID.String(), "name": "Model", "bio": "bio"})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/models", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -49,4 +50,10 @@ func createModel(t *testing.T, r *gin.Engine, userID uint) models.ModelProfile {
 	var m models.ModelProfile
 	json.Unmarshal(w.Body.Bytes(), &m)
 	return m
+}
+
+func createUserWithModel(t *testing.T, r *gin.Engine) (models.User, models.ModelProfile) {
+	u := createUser(t, r)
+	m := createModel(t, r, u.ID)
+	return u, m
 }

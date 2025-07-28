@@ -1,14 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../../config/firebase'
+
+function isMockFirebase() {
+  return (
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key' ||
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN === 'mock.firebaseapp.com' ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === 'mock-project-id'
+  )
+}
 
 export default function SigninForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (isMockFirebase()) {
+      // Instantly "sign in" for dev
+      window.location.reload()
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,7 +32,6 @@ export default function SigninForm() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password)
-      // Refresh page after successful signin
       window.location.reload()
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Signin failed'

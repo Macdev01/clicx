@@ -7,7 +7,7 @@ export default function VideosPage() {
   const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [editingVideo, setEditingVideo] = useState<Video | null>(null)
+  // const [editingVideo, setEditingVideo] = useState<Video | null>(null)
 
   useEffect(() => {
     fetchVideos()
@@ -24,15 +24,15 @@ export default function VideosPage() {
     }
   }
 
-  const handleEdit = async (videoId: number) => {
+  const handleEdit = async (videoId: string) => {
     const videoToEdit = videos.find(video => video.id === videoId)
     if (videoToEdit) {
-      setEditingVideo(videoToEdit)
+      // setEditingVideo(videoToEdit)
       // Implement edit modal/form here
     }
   }
 
-  const handleDelete = async (videoId: number) => {
+  const handleDelete = async (videoId: string) => {
     if (!confirm('Are you sure you want to delete this video?')) return
 
     try {

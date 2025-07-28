@@ -1,19 +1,16 @@
 package handlers
 
 import (
+	"go-backend/database"
+	"go-backend/dto"
 	"go-backend/models"
+	"go-backend/repository"
 	"go-backend/services"
+	"go-backend/utils"
 	"net/http"
 
-	"go-backend/dto"
-	"go-backend/utils"
-
-	"strconv"
-
-	"go-backend/database"
-	"go-backend/repository"
-
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // GetUsers godoc
@@ -24,16 +21,12 @@ import (
 // @Success      200 {array} models.User
 // @Router       /users [get]
 func GetUsers(c *gin.Context) {
-	limitStr := c.DefaultQuery("limit", "20")
-	offsetStr := c.DefaultQuery("offset", "0")
-	limit, _ := strconv.Atoi(limitStr)
-	offset, _ := strconv.Atoi(offsetStr)
+	limit, offset := utils.GetPagination(c)
 	userRepo := &repository.GormUserRepository{DB: database.GetDB()}
 	service := services.NewUserService(userRepo)
 	resp, err := service.GetUsers(limit, offset)
 	if err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		utils.AbortWithError(c, http.StatusInternalServerError, "Internal server error", err)
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -48,13 +41,16 @@ func GetUsers(c *gin.Context) {
 // @Failure      404 {object} gin.H
 // @Router       /users/{id} [get]
 func GetUserByID(c *gin.Context) {
-	id := c.Param("id")
-	userRepo := &repository.GormUserRepository{DB: database.GetDB()}
-	service := services.NewUserService(userRepo)
-	resp, err := service.GetUserByID(id)
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		utils.AbortWithError(c, http.StatusBadRequest, "Invalid user ID", err)
+		return
+	}
+	userService := services.NewUserService(&repository.GormUserRepository{DB: database.GetDB()})
+	resp, err := userService.GetUserByID(id)
+	if err != nil {
+		utils.AbortWithError(c, http.StatusNotFound, "User not found", err)
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -71,17 +67,9 @@ func GetUserByID(c *gin.Context) {
 // @Router       /users [post]
 func CreateUser(c *gin.Context) {
 	var input dto.UserCreateDTO
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+	if !utils.BindAndValidate(c, &input) {
 		return
 	}
-	if err := utils.ValidateStruct(input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
-		return
-	}
-
 	userRepo := &repository.GormUserRepository{DB: database.GetDB()}
 	service := services.NewUserService(userRepo)
 	user := models.User{
@@ -89,15 +77,11 @@ func CreateUser(c *gin.Context) {
 		Nickname: input.Nickname,
 		Password: input.Password,
 	}
-
 	if err := service.CreateUser(&user); err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
+		utils.AbortWithError(c, http.StatusInternalServerError, "Could not create user", err)
 		return
 	}
-
-	resp, _ := service.GetUserByID(strconv.Itoa(int(user.ID)))
-
+	resp, _ := service.GetUserByID(user.ID)
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -112,23 +96,21 @@ func CreateUser(c *gin.Context) {
 // @Failure      400 {object} gin.H
 // @Router       /users/{id} [put]
 func UpdateUser(c *gin.Context) {
-	id := c.Param("id")
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		utils.AbortWithError(c, http.StatusBadRequest, "Invalid user ID", err)
+		return
+	}
 	userRepo := &repository.GormUserRepository{DB: database.GetDB()}
 	service := services.NewUserService(userRepo)
 	userModel, err := service.GetUserByID(id)
 	if err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		utils.AbortWithError(c, http.StatusNotFound, "User not found", err)
 		return
 	}
-	var input dto.UserCreateDTO
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
-	}
-	if err := utils.ValidateStruct(input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
+	var input models.User
+	if !utils.BindAndValidate(c, &input) {
 		return
 	}
 	user := models.User{
@@ -140,11 +122,10 @@ func UpdateUser(c *gin.Context) {
 		AvatarURL:    userModel.AvatarURL,
 		IsAdmin:      userModel.IsAdmin,
 		ReferralCode: userModel.ReferralCode,
-		ReferredBy:   userModel.ReferredBy,
+		ReferredBy:   input.ReferredBy,
 	}
 	if err := service.UpdateUser(&user); err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Could not update user"})
+		utils.AbortWithError(c, http.StatusInternalServerError, "Could not update user", err)
 		return
 	}
 	resp, _ := service.GetUserByID(id)
@@ -159,12 +140,16 @@ func UpdateUser(c *gin.Context) {
 // @Success      200 {object} gin.H
 // @Router       /users/{id} [delete]
 func DeleteUser(c *gin.Context) {
-	id := c.Param("id")
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		utils.AbortWithError(c, http.StatusBadRequest, "Invalid user ID", err)
+		return
+	}
 	userRepo := &repository.GormUserRepository{DB: database.GetDB()}
 	service := services.NewUserService(userRepo)
 	if err := service.DeleteUser(id); err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Could not delete user"})
+		utils.AbortWithError(c, http.StatusInternalServerError, "Could not delete user", err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted"})

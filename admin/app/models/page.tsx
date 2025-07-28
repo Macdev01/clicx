@@ -26,7 +26,7 @@ export default function ModelsPage() {
     }
   }
 
-  const handleEdit = (modelId: number) => {
+  const handleEdit = (modelId: string) => {
     const modelToEdit = models.find(model => model.id === modelId)
     if (modelToEdit) {
       setEditingModel(modelToEdit)
@@ -51,7 +51,7 @@ export default function ModelsPage() {
     }
   }
 
-  const handleDelete = async (modelId: number) => {
+  const handleDelete = async (modelId: string) => {
     if (!confirm('Are you sure you want to delete this model?')) return
 
     try {

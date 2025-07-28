@@ -1,13 +1,13 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { onAuthStateChanged, signOut, type User as FirebaseUser } from 'firebase/auth'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../config/firebase'
 
 interface User {
   uid: string
-  email: string | null
-  displayName: string | null
+  email: string
+  displayName?: string
 }
 
 interface AuthContextType {
@@ -18,40 +18,59 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+function isMockFirebase() {
+  // If any Firebase config is a mock value, treat as mock
+  return (
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key' ||
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN === 'mock.firebaseapp.com' ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === 'mock-project-id'
+  )
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-      console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'User logged out')
+    if (isMockFirebase()) {
+      // Always "logged in" as admin for local/dev
+      setUser({
+        uid: 'mock-admin-uid',
+        email: 'admin@local.dev',
+        displayName: 'Admin (Mock)'
+      })
+      setLoading(false)
+      return
+    }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        const userData = {
+        setUser({
           uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName
-        }
-        console.log('Setting user:', userData)
-        setUser(userData)
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || undefined
+        })
       } else {
-        console.log('Clearing user')
         setUser(null)
       }
       setLoading(false)
     })
-
     return () => unsubscribe()
   }, [])
 
   const handleSignOut = async () => {
+    if (isMockFirebase()) {
+      setUser({
+        uid: 'mock-admin-uid',
+        email: 'admin@local.dev',
+        displayName: 'Admin (Mock)'
+      })
+      return
+    }
     try {
-      console.log('Signing out user')
       await signOut(auth)
       setUser(null)
-      // Refresh page after signout
       window.location.reload()
     } catch (error) {
-      console.error('Error signing out:', error)
       setUser(null)
       window.location.reload()
     }

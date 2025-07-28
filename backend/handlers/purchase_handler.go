@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"go-backend/database"
 	"go-backend/models"
 	"net/http"
@@ -9,8 +10,6 @@ import (
 	"go-backend/repository"
 	"go-backend/services"
 	"go-backend/utils"
-
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -22,64 +21,59 @@ type PurchaseRequest struct {
 
 func BuyContent(c *gin.Context) {
 	var input dto.PurchaseCreateDTO
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	if err := utils.ValidateStruct(input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
+	if !utils.BindAndValidate(c, &input) {
 		return
 	}
 	purchaseRepo := &repository.GormPurchaseRepository{DB: database.GetDB()}
 	postRepo := &repository.GormPostRepository{DB: database.GetDB()}
 	service := services.NewPurchaseService(purchaseRepo, postRepo)
-	val := c.MustGet("user")
-	user := val.(*models.User)
+	user, ok := utils.GetCurrentUser(c)
+	if !ok {
+		utils.AbortWithError(c, http.StatusUnauthorized, "Unauthorized", errors.New("user not found in context"))
+		return
+	}
 	resp, err := service.BuyContent(user, &input)
 	if err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		utils.AbortWithError(c, http.StatusInternalServerError, "Failed to buy content", err)
 		return
 	}
 	c.JSON(http.StatusCreated, resp)
 }
 
 func GetPurchases(c *gin.Context) {
-	limitStr := c.DefaultQuery("limit", "20")
-	offsetStr := c.DefaultQuery("offset", "0")
-	limit, _ := strconv.Atoi(limitStr)
-	offset, _ := strconv.Atoi(offsetStr)
+	limit, offset := utils.GetPagination(c)
 	purchaseRepo := &repository.GormPurchaseRepository{DB: database.GetDB()}
 	postRepo := &repository.GormPostRepository{DB: database.GetDB()}
 	service := services.NewPurchaseService(purchaseRepo, postRepo)
-	val := c.MustGet("user")
-	user := val.(*models.User)
+	user, ok := utils.GetCurrentUser(c)
+	if !ok {
+		utils.AbortWithError(c, http.StatusUnauthorized, "Unauthorized", errors.New("user not found in context"))
+		return
+	}
 	resp, err := service.GetPurchases(user.ID, limit, offset)
 	if err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		utils.AbortWithError(c, http.StatusInternalServerError, "Failed to get purchases", err)
 		return
 	}
 	c.JSON(http.StatusOK, resp)
 }
 
 func CompletePurchase(c *gin.Context) {
-	id := c.Param("id")
-
-	var purchase models.Purchase
-	if err := database.DB.First(&purchase, id).Error; err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Purchase not found"})
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid purchase ID"})
 		return
 	}
-
+	var purchase models.Purchase
+	if err := database.DB.First(&purchase, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Purchase not found"})
+		return
+	}
 	purchase.Completed = true
 	if err := database.DB.Save(&purchase).Error; err != nil {
-		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Could not update purchase"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete purchase"})
 		return
 	}
-
 	c.JSON(http.StatusOK, purchase)
 }

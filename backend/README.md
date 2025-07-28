@@ -179,3 +179,35 @@ curl http://localhost:8080/posts
 ```
 
 This will return a list of posts in JSON format.
+
+## Logging
+
+The backend uses a production-grade zap logging system with the following features:
+
+- **Log Levels:** Configurable via `LOG_LEVEL` env var (`debug`, `info`, `warn`, `error`).
+- **Environments:**
+  - Development: Console logs (human-readable)
+  - Production: JSON logs (machine-readable)
+- **Request Correlation:**
+  - Each HTTP request gets a unique `request_id` (UUID), available in all logs and returned as `X-Request-ID` header.
+  - You can trace a request across all logs using this ID.
+- **Log Storage:**
+  - **stdout:** All logs are written to stdout (for Docker/Kubernetes).
+  - **File:** If `LOG_TO_FILE=true`, logs are also written to a rotating file (see `LOG_FILE_PATH`).
+  - **Database:** All logs are asynchronously persisted to the `logs` table for audit/history.
+- **Structured Logging:**
+  - All logs include fields: `request_id`, `endpoint`, `method`, `status`, `duration_ms`, and `user_id` (if available).
+  - No sensitive data (passwords, tokens) is ever logged.
+
+### Example: Tracing a Request
+
+1. Make an API call. The response will include an `X-Request-ID` header.
+2. Use this ID to search logs in stdout, file, or the `logs` table for all related events/errors.
+
+### Log Rotation
+
+- File logs are rotated using lumberjack: max 100MB per file, 5 backups, 30 days retention, compressed.
+
+### Log Table Schema
+
+- See `models/log.go` and `migrations/000003_logs.up.sql` for the DB log schema.

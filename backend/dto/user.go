@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/google/uuid"
+
 type UserCreateDTO struct {
 	Email    string `json:"email" validate:"required,email"`
 	Nickname string `json:"nickname" validate:"required,min=3,max=32"`
@@ -7,12 +9,12 @@ type UserCreateDTO struct {
 }
 
 type UserResponseDTO struct {
-	ID           uint    `json:"id"`
-	Email        string  `json:"email"`
-	Nickname     string  `json:"nickname"`
-	Balance      int     `json:"balance"`
-	AvatarURL    string  `json:"avatarUrl"`
-	IsAdmin      bool    `json:"isAdmin"`
-	ReferralCode *string `json:"referral_code"`
-	ReferredBy   *uint   `json:"referred_by"`
+	ID           uuid.UUID  `json:"id"`
+	Email        string     `json:"email"`
+	Nickname     string     `json:"nickname"`
+	Balance      int        `json:"balance"`
+	AvatarURL    string     `json:"avatarUrl"`
+	IsAdmin      bool       `json:"isAdmin"`
+	ReferralCode *string    `json:"referral_code"`
+	ReferredBy   *uuid.UUID `json:"referred_by"`
 }

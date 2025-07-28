@@ -13,7 +13,8 @@ import (
 func TestOrderHandlers(t *testing.T) {
 	r := SetupRouter(t)
 
-	order := models.Order{UserID: 1, Summ: 10}
+	user := createUser(t, r)
+	order := models.Order{UserID: user.ID, Summ: 10}
 	body, _ := json.Marshal(order)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/orders", bytes.NewReader(body))

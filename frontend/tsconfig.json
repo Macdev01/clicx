@@ -7,7 +7,7 @@
     "moduleResolution": "bundler",
 
     // TypeScript and React setup
-    "types": ["vitest/globals"],
+    "types": [],
     "allowJs": true,
     "strict": true,
     "noEmit": true,

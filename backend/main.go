@@ -34,7 +34,7 @@ func main() {
 	database.InitDB()
 
 	// ✅ Создаём zap-логгер
-	logger, _ := logging.InitLogger("prod")
+	logger, _ := logging.InitLogger()
 	defer logger.Sync()
 	logger.Info("Сервис запущен")
 
@@ -50,12 +50,15 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
+	// ✅ Request ID middleware
+	r.Use(logging.RequestIDMiddleware())
+
 	// ✅ Настройка CORS
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://159.223.94.49:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length", "Authorization", "X-Request-ID"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))

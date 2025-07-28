@@ -3,13 +3,14 @@ package repository
 import (
 	"go-backend/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type ModelProfileRepository interface {
 	FindAll(limit, offset int) ([]models.ModelProfile, error)
 	Create(profile *models.ModelProfile) error
-	FindByUserID(userID uint) (models.ModelProfile, error)
+	FindByUserID(userID uuid.UUID) (models.ModelProfile, error)
 }
 
 type GormModelProfileRepository struct {
@@ -35,7 +36,7 @@ func (r *GormModelProfileRepository) Create(profile *models.ModelProfile) error 
 	return r.DB.Create(profile).Error
 }
 
-func (r *GormModelProfileRepository) FindByUserID(userID uint) (models.ModelProfile, error) {
+func (r *GormModelProfileRepository) FindByUserID(userID uuid.UUID) (models.ModelProfile, error) {
 	var profile models.ModelProfile
 	if err := r.DB.Where("user_id = ?", userID).First(&profile).Error; err != nil {
 		return profile, err

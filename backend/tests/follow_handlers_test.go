@@ -13,7 +13,7 @@ func TestFollowHandlers(t *testing.T) {
 
 	// follow user
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodPost, "/follow/"+jsonID(u2.ID), nil)
+	req, _ := http.NewRequest(http.MethodPost, "/follow/"+u2.ID.String(), nil)
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("follow expected 200, got %d", w.Code)
@@ -21,7 +21,7 @@ func TestFollowHandlers(t *testing.T) {
 
 	// unfollow
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodDelete, "/follow/"+jsonID(u2.ID), nil)
+	req, _ = http.NewRequest(http.MethodDelete, "/follow/"+u2.ID.String(), nil)
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("unfollow expected 200, got %d", w.Code)

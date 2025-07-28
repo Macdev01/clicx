@@ -10,8 +10,7 @@ import (
 
 func TestSavedPostHandlers(t *testing.T) {
 	r := SetupRouter(t)
-	user := createUser(t, r)
-	model := createModel(t, r, user.ID)
+	user, model := createUserWithModel(t, r)
 	post := map[string]interface{}{
 		"text":      "save",
 		"isPremium": false,
@@ -40,7 +39,7 @@ func TestSavedPostHandlers(t *testing.T) {
 	}
 
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest(http.MethodGet, "/users/"+jsonID(user.ID)+"/saved-posts", nil)
+	req, _ = http.NewRequest(http.MethodGet, "/users/"+user.ID.String()+"/saved-posts", nil)
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Fatalf("saved posts expected 200, got %d", w.Code)

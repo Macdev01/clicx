@@ -3,6 +3,8 @@ package middleware
 import (
 	"net/http"
 
+	"go-backend/logging"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -22,8 +24,12 @@ func ErrorHandler(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				logger.Error("Panic recovered", zap.Any("error", err))
-
+				logger.Error("Panic recovered",
+					zap.Any("error", err),
+					zap.String("request_id", logging.GetRequestID(c)),
+					zap.String("endpoint", c.FullPath()),
+					zap.String("method", c.Request.Method),
+				)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"status":  "error",
 					"code":    "InternalServerError",
@@ -53,13 +59,22 @@ func ErrorHandler(logger *zap.Logger) gin.HandlerFunc {
 				message = lastErr.Error()
 			}
 
+			userID := ""
+			if u, exists := c.Get("user"); exists {
+				if user, ok := u.(interface{ GetID() uint }); ok {
+					userID = string(rune(user.GetID()))
+				}
+			}
+
 			logger.Error("API Error",
-				zap.String("path", c.Request.URL.Path),
+				zap.String("request_id", logging.GetRequestID(c)),
+				zap.String("endpoint", c.FullPath()),
 				zap.String("method", c.Request.Method),
 				zap.Int("status", status),
 				zap.String("code", code),
 				zap.String("message", message),
 				zap.String("client_ip", c.ClientIP()),
+				zap.String("user_id", userID),
 			)
 
 			c.AbortWithStatusJSON(status, gin.H{

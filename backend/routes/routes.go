@@ -1,8 +1,10 @@
 package routes
 
 import (
+	"go-backend/database"
 	"go-backend/handlers"
 	"go-backend/middleware"
+	"go-backend/services"
 
 	"go.uber.org/zap"
 
@@ -12,6 +14,12 @@ import (
 )
 
 func InitRoutes(r *gin.Engine, logger *zap.Logger) {
+	// Initialize services and handlers
+	videoService := services.NewVideoService(database.GetDB(), logger)
+	handlers.InitVideoHandler(videoService)
+	imageService := services.NewImageService(database.GetDB(), logger)
+	handlers.InitImageHandler(imageService)
+
 	// Swagger documentation
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// Users (protected)
@@ -63,11 +71,20 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 	// Media / Videos (protected)
 	videos := r.Group("/videos", middleware.UserMiddleware(logger))
 	{
-		videos.POST("/upload", handlers.UploadVideo)    // Загрузка видео для поста
-		videos.GET("/:id/stream", handlers.StreamVideo) // Получение ссылки для стрима
-		videos.GET("/:id", handlers.GetMediaByID)       // Получить медиа по ID
-		videos.DELETE("/:id", handlers.DeleteVideo)     // Удалить видео
+		videos.POST("/upload", handlers.UploadVideo)
+		videos.GET("/:id", handlers.GetVideo)
+		videos.DELETE("/:id", handlers.DeleteVideo)
 	}
+
+	images := r.Group("/images", middleware.UserMiddleware(logger))
+	{
+		images.POST("/upload", handlers.UploadImage)
+		images.GET("/:id", handlers.GetImage)
+		images.DELETE("/:id", handlers.DeleteImage)
+	}
+
+	// Saved videos for any user (admin or self)
+	r.GET("/users/:id/saved-videos", handlers.GetSavedVideosByUserID)
 
 	// Покупка контента (protected)
 	purchases := r.Group("/purchases", middleware.UserMiddleware(logger))
@@ -81,12 +98,8 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 	r.DELETE("/follow/:id", middleware.UserMiddleware(logger), handlers.UnfollowUser)
 	r.GET("/followers", middleware.UserMiddleware(logger), handlers.GetFollowers)
 	r.GET("/referrals", middleware.UserMiddleware(logger), handlers.GetReferrals)
-
-	// Админские маршруты (admin only)
-	admin := r.Group("/admin", middleware.UserMiddleware(logger), middleware.AdminMiddleware())
-	{
-		admin.POST("/posts/upload", handlers.CreatePostWithMedia) // Создать пост с медиа
-	}
+	r.GET("/models/:modelId/photos/:photoId/url", handlers.GetPhotoURL)
+	r.GET("/models/:modelId/videos/:videoId/url", handlers.GetVideoURL)
 
 	// Webhook Bunny
 	r.POST("/webhook/bunny", handlers.BunnyWebhook)
@@ -99,4 +112,7 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 	r.GET("/migrate", handlers.MigrateHandler)
 	r.GET("/seed", handlers.SeedHandler)
 	r.GET("/metrics", handlers.GetMetrics)
+
+	admin := r.Group("/admin", middleware.AdminMiddleware())
+	admin.POST("/models/:modelId/portfolio/batch", handlers.BatchUploadPortfolio)
 }

@@ -1,7 +1,7 @@
 import { internalApi } from '@/shared/config/api'
 
 interface User {
-  ID: number
+  ID: string
   name: string
   email: string
   nickname: string
@@ -11,14 +11,14 @@ interface User {
 }
 
 interface Model {
-  id: number
-  user_id: number
+  id: string
+  user_id: string
   bio: string
   banner: string
 }
 
 interface Media {
-  id: number
+  id: string
   post_id: string
   type: string
   url: string
@@ -43,8 +43,8 @@ export interface Post {
 export interface CreatePostData {
   text: string
   isPremium: boolean
-  user_id: number
-  model_id: number
+  user_id: string
+  model_id: string
   media?: {
     type: string
     url: string

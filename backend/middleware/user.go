@@ -37,7 +37,7 @@ func UserMiddleware(logger *zap.Logger) gin.HandlerFunc {
 
 		userRepo := &repository.GormUserRepository{DB: database.GetDB()}
 		userService := services.NewUserService(userRepo)
-		user, err := userService.GetOrCreateUser(email, avatar, refCode)
+		user, err := userService.GetOrCreateUser(email, avatar, "changeme123", refCode)
 		if err != nil {
 			logger.Error("Failed to get or create user", zap.Error(err))
 			c.AbortWithStatus(http.StatusInternalServerError)

@@ -2,7 +2,6 @@ package database
 
 import (
 	"errors"
-	"strings"
 
 	"go-backend/models"
 	"go-backend/utils"
@@ -23,15 +22,13 @@ func GetUserByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func CreateUser(email string, avatar string, refCode string) (*models.User, error) {
+func CreateUser(email string, avatar string, password string, refCode string) (*models.User, error) {
 	code := utils.GenerateReferralCode(8)
-	// For demo, use a default password or generate one, but hash it
-	defaultPassword := "changeme123"
-	hashedPassword, _ := utils.HashPassword(defaultPassword)
+	hashedPassword, _ := utils.HashPassword(password)
 	user := &models.User{
 		Email:        email,
 		AvatarURL:    avatar,
-		Nickname:     generateNickname(email),
+		Nickname:     utils.GenerateNickname(email),
 		ReferralCode: &code,
 		Password:     hashedPassword,
 	}
@@ -48,8 +45,4 @@ func CreateUser(email string, avatar string, refCode string) (*models.User, erro
 		}
 	}
 	return user, nil
-}
-
-func generateNickname(email string) string {
-	return "user_" + strings.Split(email, "@")[0]
 }

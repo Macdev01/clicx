@@ -8,16 +8,15 @@ import (
 )
 
 type Post struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
-	Text        string    `json:"text"`
-	IsPremium   bool      `json:"isPremium"`
-	PublishedAt time.Time `json:"published_time"`
-	LikesCount  int       `json:"likes_count"`
-	Price       int       `json:"price"`
-
-	UserID       uint         `json:"-"`
+	ID           uuid.UUID    `gorm:"type:uuid;primaryKey" json:"id"`
+	Text         string       `json:"text"`
+	IsPremium    bool         `json:"isPremium"`
+	PublishedAt  time.Time    `json:"published_time"`
+	LikesCount   int          `json:"likes_count"`
+	Price        int          `json:"price"`
+	UserID       uuid.UUID    `json:"-"`
 	User         User         `json:"user"`
-	ModelID      uint         `json:"-"`
+	ModelID      uuid.UUID    `json:"-"`
 	ModelProfile ModelProfile `gorm:"foreignKey:ModelID" json:"model"`
 	Media        []Media      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE" json:"media"`
 	Comments     []Comment    `gorm:"foreignKey:PostID" json:"comments"`

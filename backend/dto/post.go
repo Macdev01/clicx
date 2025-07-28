@@ -3,10 +3,10 @@ package dto
 import "github.com/google/uuid"
 
 type PostCreateDTO struct {
-	Text      string `json:"text" validate:"required"`
-	IsPremium bool   `json:"isPremium"`
-	UserID    uint   `json:"userId" validate:"required"`
-	ModelID   uint   `json:"modelId" validate:"required"`
+	Text      string    `json:"text" validate:"required"`
+	IsPremium bool      `json:"isPremium"`
+	UserID    uuid.UUID `json:"userId" validate:"required"`
+	ModelID   uuid.UUID `json:"modelId" validate:"required"`
 }
 
 type PostResponseDTO struct {
@@ -16,6 +16,6 @@ type PostResponseDTO struct {
 	PublishedAt string    `json:"publishedAt"`
 	LikesCount  int       `json:"likesCount"`
 	Price       int       `json:"price"`
-	UserID      uint      `json:"userId"`
-	ModelID     uint      `json:"modelId"`
+	UserID      uuid.UUID `json:"userId"`
+	ModelID     uuid.UUID `json:"modelId"`
 }

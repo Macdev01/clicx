@@ -1,0 +1,3 @@
+ALTER TABLE purchases
+  DROP COLUMN IF EXISTS photo_id,
+  DROP COLUMN IF EXISTS video_id; 

@@ -175,18 +175,18 @@ export const FIREBASE_CONSTANTS = {
 // ==============================================================================
 
 export const FEATURE_FLAGS = {
-  ENABLE_ANALYTICS: process.env.NODE_ENV === "production",
-  ENABLE_DEVTOOLS: process.env.NODE_ENV === "development",
+  ENABLE_ANALYTICS: process.env['NODE_ENV'] === "production",
+  ENABLE_DEVTOOLS: process.env['NODE_ENV'] === "development",
   ENABLE_PWA: true,
   ENABLE_NOTIFICATIONS: true,
   ENABLE_OFFLINE_MODE: false,
 } as const
 
 export const ENVIRONMENT = {
-  NODE_ENV: process.env.NODE_ENV || "development",
-  IS_DEVELOPMENT: process.env.NODE_ENV === "development",
-  IS_PRODUCTION: process.env.NODE_ENV === "production",
-  IS_TEST: process.env.NODE_ENV === "test",
+  NODE_ENV: process.env['NODE_ENV'] || "development",
+  IS_DEVELOPMENT: process.env['NODE_ENV'] === "development",
+  IS_PRODUCTION: process.env['NODE_ENV'] === "production",
+  IS_TEST: process.env['NODE_ENV'] === "test",
 } as const
 
 // ==============================================================================

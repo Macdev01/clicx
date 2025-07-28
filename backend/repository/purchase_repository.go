@@ -3,20 +3,21 @@ package repository
 import (
 	"go-backend/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type PurchaseRepository interface {
-	FindByUserID(userID uint, limit, offset int) ([]models.Purchase, error)
+	FindByUserID(userID uuid.UUID, limit, offset int) ([]models.Purchase, error)
 	Create(purchase *models.Purchase) error
-	FindByUserAndPost(userID uint, postID string) (models.Purchase, error)
+	FindByUserAndPost(userID uuid.UUID, postID uuid.UUID) (models.Purchase, error)
 }
 
 type GormPurchaseRepository struct {
 	DB *gorm.DB
 }
 
-func (r *GormPurchaseRepository) FindByUserID(userID uint, limit, offset int) ([]models.Purchase, error) {
+func (r *GormPurchaseRepository) FindByUserID(userID uuid.UUID, limit, offset int) ([]models.Purchase, error) {
 	var purchases []models.Purchase
 	q := r.DB.Where("user_id = ?", userID)
 	if limit > 0 {
@@ -35,7 +36,7 @@ func (r *GormPurchaseRepository) Create(purchase *models.Purchase) error {
 	return r.DB.Create(purchase).Error
 }
 
-func (r *GormPurchaseRepository) FindByUserAndPost(userID uint, postID string) (models.Purchase, error) {
+func (r *GormPurchaseRepository) FindByUserAndPost(userID uuid.UUID, postID uuid.UUID) (models.Purchase, error) {
 	var purchase models.Purchase
 	if err := r.DB.Where("user_id = ? AND post_id = ?", userID, postID).First(&purchase).Error; err != nil {
 		return purchase, err

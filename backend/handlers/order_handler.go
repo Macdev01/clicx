@@ -10,33 +10,32 @@ import (
 	"go-backend/services"
 	"go-backend/utils"
 
-	"strconv"
-
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func GetOrders(c *gin.Context) {
-	limitStr := c.DefaultQuery("limit", "20")
-	offsetStr := c.DefaultQuery("offset", "0")
-	limit, _ := strconv.Atoi(limitStr)
-	offset, _ := strconv.Atoi(offsetStr)
+	limit, offset := utils.GetPagination(c)
 	orderRepo := &repository.GormOrderRepository{DB: database.GetDB()}
 	service := services.NewOrderService(orderRepo)
 	resp, err := service.GetOrders(limit, offset)
 	if err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		utils.AbortWithError(c, http.StatusInternalServerError, "Failed to get orders", err)
 		return
 	}
 	c.JSON(http.StatusOK, resp)
 }
 
 func GetOrderByID(c *gin.Context) {
-	id := c.Param("id")
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		utils.AbortWithError(c, http.StatusBadRequest, "Invalid order ID", err)
+		return
+	}
 	var order models.Order
-	if err := database.DB.First(&order, id).Error; err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusNotFound)
+	if err := database.DB.First(&order, "id = ?", id).Error; err != nil {
+		utils.AbortWithError(c, http.StatusNotFound, "Order not found", err)
 		return
 	}
 	c.JSON(http.StatusOK, order)
@@ -44,56 +43,50 @@ func GetOrderByID(c *gin.Context) {
 
 func CreateOrder(c *gin.Context) {
 	var input dto.OrderCreateDTO
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	if err := utils.ValidateStruct(input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
+	if !utils.BindAndValidate(c, &input) {
 		return
 	}
 	orderRepo := &repository.GormOrderRepository{DB: database.GetDB()}
 	service := services.NewOrderService(orderRepo)
 	resp, err := service.CreateOrder(&input)
 	if err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		utils.AbortWithError(c, http.StatusInternalServerError, "Failed to create order", err)
 		return
 	}
 	c.JSON(http.StatusCreated, resp)
 }
 
 func UpdateOrder(c *gin.Context) {
-	id := c.Param("id")
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		utils.AbortWithError(c, http.StatusBadRequest, "Invalid order ID", err)
+		return
+	}
 	var order models.Order
-	if err := database.DB.First(&order, id).Error; err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusNotFound)
+	if err := database.DB.First(&order, "id = ?", id).Error; err != nil {
+		utils.AbortWithError(c, http.StatusNotFound, "Order not found", err)
 		return
 	}
-	if err := c.ShouldBindJSON(&order); err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	if err := utils.ValidateStruct(order); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
+	if !utils.BindAndValidate(c, &order) {
 		return
 	}
 	if err := database.DB.Save(&order).Error; err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		utils.AbortWithError(c, http.StatusInternalServerError, "Failed to update order", err)
 		return
 	}
 	c.JSON(http.StatusOK, order)
 }
 
 func DeleteOrder(c *gin.Context) {
-	id := c.Param("id")
-	if err := database.DB.Delete(&models.Order{}, id).Error; err != nil {
-		c.Error(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		utils.AbortWithError(c, http.StatusBadRequest, "Invalid order ID", err)
+		return
+	}
+	if err := database.DB.Delete(&models.Order{}, "id = ?", id).Error; err != nil {
+		utils.AbortWithError(c, http.StatusInternalServerError, "Failed to delete order", err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Order deleted"})

@@ -3,15 +3,18 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
+	"go-backend/database"
+	"go-backend/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestPostHandlers(t *testing.T) {
 	r := SetupRouter(t)
-	user := createUser(t, r)
-	model := createModel(t, r, user.ID)
+	user, model := createUserWithModel(t, r)
 
 	// create post
 	body, _ := json.Marshal(map[string]interface{}{
@@ -32,6 +35,18 @@ func TestPostHandlers(t *testing.T) {
 	}
 	var postResp PostResp
 	json.Unmarshal(w.Body.Bytes(), &postResp)
+
+	// Assert id is present and valid UUID in DB
+	var post models.Post
+	if err := database.DB.First(&post, "id = ?", postResp.ID).Error; err != nil {
+		t.Fatalf("failed to fetch post from DB: %v", err)
+	}
+	if post.ID == uuid.Nil {
+		t.Fatalf("expected id to be set, got nil")
+	}
+	if _, err := uuid.Parse(post.ID.String()); err != nil {
+		t.Fatalf("expected valid UUID, got %v", post.ID)
+	}
 
 	// list posts
 	w = httptest.NewRecorder()

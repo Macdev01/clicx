@@ -10,8 +10,7 @@ import (
 
 func TestLikeHandler(t *testing.T) {
 	r := SetupRouter(t)
-	user := createUser(t, r)
-	model := createModel(t, r, user.ID)
+	user, model := createUserWithModel(t, r)
 	post := map[string]interface{}{
 		"text":      "like",
 		"isPremium": false,

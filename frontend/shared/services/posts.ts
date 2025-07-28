@@ -8,7 +8,7 @@ export async function getPosts(): Promise<Post[]> {
   // In a real app, this would fetch from a database or API
   return [
     {
-      id: 1,
+      id: "1",
       avatar:
         "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
       name: "Emma Rodriguez",
@@ -24,7 +24,7 @@ export async function getPosts(): Promise<Post[]> {
       tags: ["3D Design", "Character", "Animation", "Blender", "Tutorial"],
     },
     {
-      id: 2,
+      id: "2",
       avatar:
         "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
       name: "Alex Chen",
@@ -41,7 +41,7 @@ export async function getPosts(): Promise<Post[]> {
       tags: ["AI", "Machine Learning", "ChatBot", "NLP", "Technology"],
     },
     {
-      id: 3,
+      id: "3",
       avatar:
         "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
       name: "Sarah Johnson",
@@ -58,7 +58,7 @@ export async function getPosts(): Promise<Post[]> {
       tags: ["Architecture", "Visualization", "Rendering", "Design", "3D"],
     },
     {
-      id: 4,
+      id: "4",
       avatar:
         "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
       name: "Marcus Williams",
@@ -75,7 +75,7 @@ export async function getPosts(): Promise<Post[]> {
       tags: ["VFX", "Film", "Particles", "Lighting", "Sci-Fi"],
     },
     {
-      id: 5,
+      id: "5",
       avatar:
         "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
       name: "Luna Park",

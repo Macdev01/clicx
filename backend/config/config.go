@@ -1,12 +1,12 @@
 package config
 
 import (
-        "os"
-        "strconv"
-        "strings"
+	"os"
+	"strconv"
+	"strings"
 
-        "github.com/joho/godotenv"
-        "go.uber.org/zap"
+	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -22,10 +22,15 @@ type Config struct {
 	PlisioSecret string
 
 	// BunnyCDN
-	BunnyStorageZone  string
-	BunnyStorageKey   string
-	BunnyPullZoneHost string
-	BunnyTokenKey     string
+	BunnyStorageZone   string
+	BunnyStorageKey    string
+	BunnyPullZoneHost  string
+	BunnyTokenKey      string
+	BunnyStorageAPIKey string
+	BunnyStorageHost   string
+
+	// Video Uploads
+	UploadPath string
 
 	// Firebase
 	FirebaseType                string
@@ -38,21 +43,26 @@ type Config struct {
 	FirebaseTokenURI            string
 	FirebaseAuthProviderCertURL string
 	FirebaseClientCertURL       string
+
+	BunnyStreamAPI       string
+	BunnyStreamAPIKey    string
+	BunnyStreamLibraryID string
+	BunnyStreamHost      string
 }
 
 var AppConfig *Config
 
 func LoadConfig() {
-        // Загружаем .env (если есть)
-        if err := godotenv.Load(); err != nil {
-                zap.L().Warn(".env файл не найден, читаем из системных переменных", zap.Error(err))
-        }
+	// Загружаем .env (если есть)
+	if err := godotenv.Load(); err != nil {
+		zap.L().Warn(".env файл не найден, читаем из системных переменных", zap.Error(err))
+	}
 
 	// Парсим порт БД
-        port, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
-        if err != nil {
-                zap.L().Fatal("Невалидный DB_PORT", zap.Error(err))
-        }
+	port, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
+	if err != nil {
+		zap.L().Fatal("Невалидный DB_PORT", zap.Error(err))
+	}
 
 	AppConfig = &Config{
 		AppPort:    getEnv("APP_PORT", "8080"),
@@ -65,10 +75,14 @@ func LoadConfig() {
 		PlisioKey:    getEnv("PLISIO_API_KEY", ""),
 		PlisioSecret: getEnv("PLISIO_SECRET_KEY", ""),
 
-		BunnyStorageZone:  getEnv("BUNNY_STORAGE_ZONE", ""),
-		BunnyStorageKey:   getEnv("BUNNY_STORAGE_KEY", ""),
-		BunnyPullZoneHost: getEnv("BUNNY_PULL_ZONE_HOSTNAME", ""),
-		BunnyTokenKey:     getEnv("BUNNY_TOKEN_KEY", ""),
+		BunnyStorageZone:   getEnv("BUNNY_STORAGE_ZONE", ""),
+		BunnyStorageKey:    getEnv("BUNNY_STORAGE_KEY", ""),
+		BunnyPullZoneHost:  getEnv("BUNNY_PULL_ZONE_HOSTNAME", ""),
+		BunnyTokenKey:      getEnv("BUNNY_TOKEN_KEY", ""),
+		BunnyStorageAPIKey: getEnv("BUNNY_STORAGE_API_KEY", ""),
+		BunnyStorageHost:   getEnv("BUNNY_STORAGE_HOSTNAME", ""),
+
+		UploadPath: getEnv("UPLOAD_PATH", "uploads"),
 
 		// Firebase
 		FirebaseType:                getEnv("GOOGLE_TYPE", ""),
@@ -81,6 +95,11 @@ func LoadConfig() {
 		FirebaseTokenURI:            getEnv("GOOGLE_TOKEN_URI", ""),
 		FirebaseAuthProviderCertURL: getEnv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL", ""),
 		FirebaseClientCertURL:       getEnv("GOOGLE_CLIENT_X509_CERT_URL", ""),
+
+		BunnyStreamAPI:       getEnv("BUNNY_STREAM_API", ""),
+		BunnyStreamAPIKey:    getEnv("BUNNY_STREAM_API_KEY", ""),
+		BunnyStreamLibraryID: getEnv("BUNNY_STREAM_LIBRARY_ID", ""),
+		BunnyStreamHost:      getEnv("BUNNY_STREAM_HOSTNAME", ""),
 	}
 }
 

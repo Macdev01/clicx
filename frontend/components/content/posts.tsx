@@ -21,7 +21,7 @@ interface PostsProps {
 
 export function Posts({ posts }: PostsProps) {
   const { toast } = useToast()
-  const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({})
+  const [loadingStates, setLoadingStates] = useState<{ [id: string]: boolean }>({})
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const { searchTerm } = useSearch()
 
@@ -38,7 +38,7 @@ export function Posts({ posts }: PostsProps) {
     )
   }, [searchTerm, posts])
 
-  const handleSubscribe = async (postId: number) => {
+  const handleSubscribe = async (postId: string) => {
     // Set loading state for this specific post
     setLoadingStates((prev) => ({ ...prev, [postId]: true }))
 
@@ -171,10 +171,10 @@ export function Posts({ posts }: PostsProps) {
               {/* Subscribe button */}
               <Button
                 className="w-full bg-sky-400 text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={loadingStates[post.id]}
-                onClick={() => handleSubscribe(post.id)}
+                disabled={loadingStates[post.id.toString()]}
+                onClick={() => handleSubscribe(post.id.toString())}
               >
-                {loadingStates[post.id] ? (
+                {loadingStates[post.id.toString()] ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing...

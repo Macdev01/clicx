@@ -1,5 +1,5 @@
 export interface Video {
-  id: number
+  id: string
   title: string
   thumbnail: string
   duration: string

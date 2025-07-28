@@ -36,6 +36,7 @@ func RunUsers() ([]models.User, error) {
 	// Добавляем админа первым
 	hashedAdminPassword, _ := utils.HashPassword("admin123")
 	users = append(users, models.User{
+		ID:        uuid.New(),
 		Email:     "admin@example.com",
 		Nickname:  "admin",
 		Password:  hashedAdminPassword, // hashed
@@ -49,6 +50,7 @@ func RunUsers() ([]models.User, error) {
 		rawPassword := faker.Password()
 		hashedPassword, _ := utils.HashPassword(rawPassword)
 		users = append(users, models.User{
+			ID:        uuid.New(),
 			Email:     faker.Email(),
 			Nickname:  faker.Username(),
 			Password:  hashedPassword, // hashed
@@ -75,6 +77,7 @@ func RunModelProfiles(users []models.User) ([]models.ModelProfile, error) {
 	var profiles []models.ModelProfile
 	for _, user := range users {
 		profiles = append(profiles, models.ModelProfile{
+			ID:     uuid.New(),
 			UserID: user.ID,
 			Name:   faker.Name(),
 			Bio:    faker.Sentence(),
@@ -102,6 +105,7 @@ func RunPosts(users []models.User, profiles []models.ModelProfile) ([]models.Pos
 			LikesCount:  rand.Intn(1000),
 			Media: []models.Media{
 				{
+					ID:       uuid.New(),
 					PostID:   postID, // UUID
 					Type:     "video",
 					URL:      "https://www.w3schools.com/html/mov_bbb.mp4",
@@ -125,6 +129,7 @@ func RunComments(posts []models.Post, users []models.User) error {
 	var comments []models.Comment
 	for i := 0; i < 30; i++ {
 		comments = append(comments, models.Comment{
+			ID:     uuid.New(),
 			PostID: posts[i%len(posts)].ID, // UUID
 			UserID: users[i%len(users)].ID,
 			Text:   faker.Sentence(),
@@ -142,6 +147,7 @@ func RunLikes(posts []models.Post, users []models.User) error {
 	var likes []models.Like
 	for i := 0; i < 20; i++ {
 		likes = append(likes, models.Like{
+			ID:     uuid.New(),
 			UserID: users[rand.Intn(len(users))].ID,
 			PostID: posts[rand.Intn(len(posts))].ID,
 		})
@@ -153,6 +159,7 @@ func RunFollows(users []models.User) error {
 	var follows []models.Follow
 	for i := 1; i < len(users); i++ {
 		follows = append(follows, models.Follow{
+			ID:         uuid.New(),
 			FollowerID: users[i].ID,
 			FollowedID: users[0].ID,
 		})
@@ -164,6 +171,7 @@ func RunOrders(users []models.User) ([]models.Order, error) {
 	var orders []models.Order
 	for _, u := range users {
 		orders = append(orders, models.Order{
+			ID:     uuid.New(),
 			UserID: u.ID,
 			Summ:   rand.Intn(500) + 10,
 		})
@@ -175,6 +183,7 @@ func RunPayments(orders []models.Order) error {
 	var payments []models.Payment
 	for i, o := range orders {
 		payments = append(payments, models.Payment{
+			ID:          uuid.New(),
 			TxnID:       uuid.NewString(),
 			OrderNumber: fmt.Sprintf("ORD-%d", i+1),
 			Amount:      fmt.Sprintf("%d", o.Summ),
@@ -186,13 +195,54 @@ func RunPayments(orders []models.Order) error {
 
 func RunPurchases(posts []models.Post, users []models.User) error {
 	var purchases []models.Purchase
+
+	// Fetch all media and videos for use in purchases
+	var media []models.Media
+	database.DB.Find(&media)
+	var videos []models.Video
+	database.DB.Find(&videos)
+
+	// Standard post purchases
 	for i := 0; i < 10; i++ {
 		purchases = append(purchases, models.Purchase{
+			ID:        uuid.New(),
 			UserID:    users[rand.Intn(len(users))].ID,
 			PostID:    posts[rand.Intn(len(posts))].ID,
 			Completed: true,
 		})
 	}
+
+	// Per-photo purchases (if media exists)
+	for i := 0; i < 5 && len(media) > 0; i++ {
+		m := media[rand.Intn(len(media))]
+		purchases = append(purchases, models.Purchase{
+			ID:        uuid.New(),
+			UserID:    users[rand.Intn(len(users))].ID,
+			PostID:    m.PostID,
+			PhotoID:   &m.ID,
+			Completed: true,
+		})
+	}
+
+	// Per-video purchases (if videos exist)
+	for i := 0; i < 5 && len(videos) > 0; i++ {
+		v := videos[rand.Intn(len(videos))]
+		// Find a post to associate (random)
+		var postID uuid.UUID
+		if len(posts) > 0 {
+			postID = posts[rand.Intn(len(posts))].ID
+		} else {
+			postID = uuid.New()
+		}
+		purchases = append(purchases, models.Purchase{
+			ID:        uuid.New(),
+			UserID:    users[rand.Intn(len(users))].ID,
+			PostID:    postID,
+			VideoID:   &v.ID, // Now correct type
+			Completed: true,
+		})
+	}
+
 	return database.DB.Create(&purchases).Error
 }
 
@@ -200,6 +250,7 @@ func RunSavedPosts(posts []models.Post, users []models.User) error {
 	var saved []models.SavedPost
 	for i := 0; i < 10; i++ {
 		saved = append(saved, models.SavedPost{
+			ID:        uuid.New(),
 			UserID:    users[rand.Intn(len(users))].ID,
 			PostID:    posts[rand.Intn(len(posts))].ID,
 			CreatedAt: time.Now(),
@@ -215,6 +266,7 @@ func RunReferrals(users []models.User) error {
 	var refs []models.Referral
 	for i := 1; i < len(users); i++ {
 		refs = append(refs, models.Referral{
+			ID:            uuid.New(),
 			UserID:        users[0].ID,
 			ReferralCode:  *users[0].ReferralCode,
 			InvitedUserID: users[i].ID,

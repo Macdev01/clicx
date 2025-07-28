@@ -1,6 +1,7 @@
+import '@testing-library/jest-dom/vitest';
 import { AgeRestriction } from "@/features/auth/age-restriction"
 import { fireEvent, render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi, afterEach } from "vitest"
 
 const mockPush = vi.fn()
 vi.mock("next/navigation", () => ({

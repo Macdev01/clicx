@@ -3,9 +3,8 @@ package repository
 import (
 	"errors"
 	"go-backend/models"
-	"go-backend/utils"
-	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -13,12 +12,12 @@ var ErrUserNotFound = errors.New("user not found")
 
 type UserRepository interface {
 	FindAll(limit, offset int) ([]models.User, error)
-	FindByID(id string) (models.User, error)
+	FindByID(id uuid.UUID) (models.User, error)
 	FindByEmail(email string) (models.User, error)
 	Create(user *models.User) error
 	Update(user *models.User) error
-	Delete(id string) error
-	CreateUser(email, avatar, refCode string) (*models.User, error)
+	Delete(id uuid.UUID) error
+	CreateUser(email, avatar, password, refCode string) (*models.User, error)
 }
 
 type GormUserRepository struct {
@@ -40,9 +39,9 @@ func (r *GormUserRepository) FindAll(limit, offset int) ([]models.User, error) {
 	return users, nil
 }
 
-func (r *GormUserRepository) FindByID(id string) (models.User, error) {
+func (r *GormUserRepository) FindByID(id uuid.UUID) (models.User, error) {
 	var user models.User
-	if err := r.DB.First(&user, id).Error; err != nil {
+	if err := r.DB.First(&user, "id = ?", id).Error; err != nil {
 		return user, err
 	}
 	return user, nil
@@ -67,31 +66,19 @@ func (r *GormUserRepository) Update(user *models.User) error {
 	return r.DB.Save(user).Error
 }
 
-func (r *GormUserRepository) Delete(id string) error {
-	return r.DB.Delete(&models.User{}, id).Error
+func (r *GormUserRepository) Delete(id uuid.UUID) error {
+	return r.DB.Delete(&models.User{}, "id = ?", id).Error
 }
 
-func (r *GormUserRepository) CreateUser(email, avatar, refCode string) (*models.User, error) {
-	code := utils.GenerateReferralCode(8)
+func (r *GormUserRepository) CreateUser(email, avatar, password, refCode string) (*models.User, error) {
 	user := &models.User{
-		Email:        email,
-		AvatarURL:    avatar,
-		Nickname:     generateNickname(email),
-		ReferralCode: &code,
+		ID:        uuid.New(),
+		Email:     email,
+		AvatarURL: avatar,
+		Password:  password,
 	}
 	if err := r.DB.Create(user).Error; err != nil {
 		return nil, err
 	}
-	if refCode != "" {
-		var inviter models.User
-		if err := r.DB.Where("referral_code = ?", refCode).First(&inviter).Error; err == nil {
-			inviter.Balance += 1
-			r.DB.Save(&inviter)
-		}
-	}
 	return user, nil
-}
-
-func generateNickname(email string) string {
-	return "user_" + strings.Split(email, "@")[0]
 }

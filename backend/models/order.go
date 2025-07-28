@@ -1,7 +1,9 @@
 package models
 
+import "github.com/google/uuid"
+
 type Order struct {
-	ID     uint `gorm:"primaryKey"`
-	UserID uint `gorm:"not null" validate:"required"`
-	Summ   int  `gorm:"not null" validate:"required,min=1"`
+	ID     uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID uuid.UUID `gorm:"not null" validate:"required"`
+	Summ   int       `gorm:"not null" validate:"required,min=1"`
 }

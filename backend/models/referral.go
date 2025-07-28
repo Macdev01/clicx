@@ -1,12 +1,16 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // Referral tracks users invited through a referral code.
 type Referral struct {
-	ID            uint   `gorm:"primaryKey"`
-	UserID        uint   // who invited
-	ReferralCode  string // code used
-	InvitedUserID uint   // new user
+	ID            uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID        uuid.UUID
+	ReferralCode  string
+	InvitedUserID uuid.UUID
 	CreatedAt     time.Time
 }

@@ -1,9 +1,13 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Payment struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	TxnID       string    `gorm:"uniqueIndex" json:"txn_id"`
 	OrderNumber string    `json:"order_number"`
 	Amount      string    `json:"amount"`

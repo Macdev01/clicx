@@ -1,13 +1,14 @@
 package models
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type SavedPost struct {
-	ID        uint `gorm:"primaryKey"`
-	UserID    uint
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID    uuid.UUID
 	PostID    uuid.UUID `gorm:"type:uuid"`
 	CreatedAt time.Time
 }
