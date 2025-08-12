@@ -10,7 +10,9 @@
     "test:watch": "jest --watch",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "migrate": "node src/database/migrate.js",
+    "migrate": "node src/migrations/migrate.js",
+    "migrate:reset": "node src/migrations/migrate.js --reset",
+    "db:setup": "npm run migrate",
     "seed": "node src/database/seed.js"
   },
   "dependencies": {
