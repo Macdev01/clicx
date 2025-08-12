@@ -1,0 +1,15 @@
+# Exclude unnecessary files and directories from Railway deployment
+.cursor/
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.DS_Store
+Thumbs.db
+
+# Keep all important project directories
+# backend-js/ - Node.js backend API
+# frontend/ - Next.js frontend application  
+# admin/ - Admin dashboard
+# shared/ - Shared utilities and types
