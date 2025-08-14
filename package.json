@@ -1,51 +1,42 @@
 {
-  "name": "clicx-monorepo",
-  "version": "1.0.0",
-  "description": "Clicx Platform - Full Stack Monorepo",
+  "name": "clixxx-monorepo",
   "private": true,
-  "workspaces": [
-    "backend-js",
-    "frontend",
-    "admin"
-  ],
-  "scripts": {
-    "start": "cd backend-js && npm start",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:admin\"",
-    "dev:backend": "cd backend-js && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:admin": "cd admin && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend && npm run build:admin",
-    "build:backend": "cd backend-js && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "build:admin": "cd admin && npm run build",
-    "install:all": "npm install && cd backend-js && npm install && cd ../frontend && npm install && cd ../admin && npm install",
-    "test": "npm run test:backend && npm run test:frontend && npm run test:admin",
-    "test:backend": "cd backend-js && npm test",
-    "test:frontend": "cd frontend && npm test",
-    "test:admin": "cd admin && npm test",
-    "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:admin",
-    "lint:backend": "cd backend-js && npm run lint",
-    "lint:frontend": "cd frontend && npm run lint",
-    "lint:admin": "cd admin && npm run lint",
-    "db:setup": "cd backend-js && npm run db:setup",
-    "migrate": "cd backend-js && npm run migrate"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-  },
+  "version": "1.0.0",
+  "description": "Production-ready monorepo for Clixxx platform",
   "engines": {
     "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "pnpm": ">=8.0.0"
   },
-  "keywords": [
-    "monorepo",
-    "fullstack",
-    "nodejs",
-    "react",
-    "nextjs",
-    "express",
-    "postgresql"
-  ],
-  "author": "Clicx Team",
-  "license": "MIT"
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json}\"",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "typecheck": "turbo run typecheck",
+    "prepare": "husky install",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.1",
+    "eslint": "^8.56.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.1",
+    "turbo": "^1.11.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json}": [
+      "prettier --write"
+    ]
+  },
+  "packageManager": "pnpm@8.12.1"
 }
