@@ -50,10 +50,16 @@ func (s *ImageService) UploadImage(file *multipart.FileHeader) (*models.Image, e
 	req, _ := http.NewRequest("PUT", uploadURL, bytes.NewReader(buf.Bytes()))
 	req.Header.Set("AccessKey", bunnyKey)
 	req.Header.Set("Content-Type", "application/octet-stream")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil || resp.StatusCode > 299 {
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
 		s.Logger.Error("Bunny image upload failed", zap.Error(err))
 		return nil, fmt.Errorf("Bunny image upload failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode > 299 {
+		s.Logger.Error("Bunny image upload failed", zap.Error(fmt.Errorf("status: %s", resp.Status)))
+		return nil, fmt.Errorf("Bunny image upload failed: %s", resp.Status)
 	}
 	cdnURL := fmt.Sprintf("https://%s/%s", bunnyHost, filename)
 	image := &models.Image{
@@ -94,10 +100,16 @@ func (s *ImageService) DeleteImage(id uuid.UUID) error {
 	deleteURL := fmt.Sprintf("https://sg.storage.bunnycdn.com/%s/%s", bunnyZone, image.Filename)
 	req, _ := http.NewRequest("DELETE", deleteURL, nil)
 	req.Header.Set("AccessKey", bunnyKey)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil || resp.StatusCode > 299 {
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
 		s.Logger.Error("Bunny image delete failed", zap.Error(err))
 		return fmt.Errorf("Bunny image delete failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode > 299 {
+		s.Logger.Error("Bunny image delete failed", zap.Error(fmt.Errorf("status: %s", resp.Status)))
+		return fmt.Errorf("Bunny image delete failed: %s", resp.Status)
 	}
 	if err := s.DB.Delete(&image).Error; err != nil {
 		s.Logger.Error("DB delete failed", zap.Error(err))

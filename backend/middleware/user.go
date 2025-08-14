@@ -47,3 +47,15 @@ func UserMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// RequireUser enforces that a user is present in the context (set by UserMiddleware).
+func RequireUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		val, exists := c.Get("user")
+		if !exists || val == nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+		c.Next()
+	}
+}
