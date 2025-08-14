@@ -1,0 +1,319 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  nickname     String    @unique
+  password     String
+  balance      Int       @default(0)
+  avatarUrl    String?   @map("avatar_url")
+  isAdmin      Boolean   @default(false) @map("is_admin")
+  referralCode String?   @unique @map("referral_code")
+  referredBy   String?   @map("referred_by")
+  referrer     User?     @relation("Referrals", fields: [referredBy], references: [id])
+  referrals    User[]    @relation("Referrals")
+  
+  modelProfile ModelProfile?
+  posts        Post[]        @relation("UserPosts")
+  comments     Comment[]
+  likes        Like[]
+  follows      Follow[]      @relation("Follower")
+  following    Follow[]      @relation("Following")
+  orders       Order[]
+  purchases    Purchase[]
+  savedPosts   SavedPost[]
+  
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  @@map("users")
+}
+
+model ModelProfile {
+  id       String  @id @default(uuid())
+  userId   String  @unique @map("user_id")
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String?
+  bio      String? @db.Text
+  banner   String?
+  
+  posts    Post[]
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("model_profiles")
+}
+
+model Post {
+  id           String    @id @default(uuid())
+  text         String?   @db.Text
+  isPremium    Boolean   @default(false) @map("is_premium")
+  publishedAt  DateTime  @default(now()) @map("published_at")
+  likesCount   Int       @default(0) @map("likes_count")
+  price        Int       @default(0)
+  
+  userId       String?   @map("user_id")
+  user         User?     @relation("UserPosts", fields: [userId], references: [id], onDelete: SetNull)
+  
+  modelId      String?   @map("model_id")
+  model        ModelProfile? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  
+  media        Media[]
+  comments     Comment[]
+  likes        Like[]
+  purchases    Purchase[]
+  savedPosts   SavedPost[]
+  
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  @@index([userId])
+  @@index([modelId])
+  @@map("posts")
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  type      String   // "video" or "photo"
+  url       String   @db.Text
+  cover     String?  @db.Text
+  duration  Int      @default(0)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([postId])
+  @@map("media")
+}
+
+model Video {
+  id           String   @id @default(uuid())
+  publicId     String   @unique @map("public_id")
+  title        String
+  description  String?  @db.Text
+  bunnyId      String?  @unique @map("bunny_id")
+  playbackUrl  String?  @db.Text @map("playback_url")
+  thumbnailUrl String?  @db.Text @map("thumbnail_url")
+  duration     Int?
+  status       String   @default("pending") // pending, processing, ready, failed
+  modelId      String?  @map("model_id")
+  userId       String?  @map("user_id")
+  
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  @@index([modelId])
+  @@index([userId])
+  @@map("videos")
+}
+
+model Image {
+  id           String   @id @default(uuid())
+  publicId     String   @unique @map("public_id")
+  title        String?
+  bunnyPath    String?  @map("bunny_path")
+  cdnUrl       String?  @db.Text @map("cdn_url")
+  thumbnailUrl String?  @db.Text @map("thumbnail_url")
+  modelId      String?  @map("model_id")
+  userId       String?  @map("user_id")
+  
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  @@index([modelId])
+  @@index([userId])
+  @@map("images")
+}
+
+model Comment {
+  id      String   @id @default(uuid())
+  postId  String   @map("post_id")
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId  String   @map("user_id")
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text    String   @db.Text
+  time    DateTime @default(now())
+  
+  @@index([postId])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String   @map("post_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@unique([userId, postId])
+  @@index([postId])
+  @@map("likes")
+}
+
+model Follow {
+  id         String   @id @default(uuid())
+  followerId String   @map("follower_id")
+  follower   User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followedId String   @map("followed_id")
+  followed   User     @relation("Following", fields: [followedId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime @default(now()) @map("created_at")
+  
+  @@unique([followerId, followedId])
+  @@index([followerId])
+  @@index([followedId])
+  @@map("follows")
+}
+
+model Order {
+  id      String @id @default(uuid())
+  userId  String @map("user_id")
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summ    Int
+  status  String @default("pending") // pending, completed, failed, cancelled
+  
+  payment Payment?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@index([userId])
+  @@map("orders")
+}
+
+model Purchase {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String   @map("post_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  completed Boolean  @default(false)
+  amount    Int?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@unique([userId, postId])
+  @@index([userId])
+  @@map("purchases")
+}
+
+model Payment {
+  id           String   @id @default(uuid())
+  txnId        String   @unique @map("txn_id")
+  orderNumber  String?  @map("order_number")
+  orderId      String?  @unique @map("order_id")
+  order        Order?   @relation(fields: [orderId], references: [id])
+  amount       String
+  currency     String?
+  status       String   // pending, processing, completed, failed, cancelled
+  plisioData   Json?    @map("plisio_data")
+  
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  @@index([txnId])
+  @@map("payments")
+}
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String   @map("post_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@unique([userId, postId])
+  @@index([userId])
+  @@map("saved_posts")
+}
+
+model Stream {
+  id          String   @id @default(uuid())
+  modelId     String   @map("model_id")
+  title       String
+  description String?  @db.Text
+  streamKey   String   @unique @map("stream_key")
+  streamUrl   String?  @map("stream_url")
+  isLive      Boolean  @default(false) @map("is_live")
+  viewerCount Int      @default(0) @map("viewer_count")
+  
+  startedAt   DateTime? @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  @@index([modelId])
+  @@map("streams")
+}
+
+model ChatRoom {
+  id          String   @id @default(uuid())
+  name        String?
+  isPrivate   Boolean  @default(false) @map("is_private")
+  
+  messages    ChatMessage[]
+  participants ChatParticipant[]
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  @@map("chat_rooms")
+}
+
+model ChatParticipant {
+  id         String   @id @default(uuid())
+  roomId     String   @map("room_id")
+  room       ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     String   @map("user_id")
+  role       String   @default("member") // admin, moderator, member
+  
+  joinedAt   DateTime @default(now()) @map("joined_at")
+  
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+  @@map("chat_participants")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  roomId    String   @map("room_id")
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId  String   @map("sender_id")
+  content   String   @db.Text
+  type      String   @default("text") // text, image, video, system
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([roomId])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+model Log {
+  id          String   @id @default(uuid())
+  level       String   // info, warn, error, debug
+  message     String   @db.Text
+  metadata    Json?
+  userId      String?  @map("user_id")
+  requestId   String?  @map("request_id")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([level])
+  @@index([userId])
+  @@index([requestId])
+  @@index([createdAt])
+  @@map("logs")
+}
