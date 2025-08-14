@@ -84,7 +84,7 @@ func InitRoutes(r *gin.Engine, logger *zap.Logger) {
 	}
 
 	// Saved videos for any user (admin or self)
-	r.GET("/users/:id/saved-videos", handlers.GetSavedVideosByUserID)
+	r.GET("/users/:id/saved-videos", middleware.UserMiddleware(logger), middleware.RequireUser(), handlers.GetSavedVideosByUserID)
 
 	// Покупка контента (protected)
 	purchases := r.Group("/purchases", middleware.UserMiddleware(logger))

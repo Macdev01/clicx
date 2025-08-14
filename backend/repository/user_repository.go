@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"go-backend/models"
+	"go-backend/utils"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -71,11 +72,12 @@ func (r *GormUserRepository) Delete(id uuid.UUID) error {
 }
 
 func (r *GormUserRepository) CreateUser(email, avatar, password, refCode string) (*models.User, error) {
+	hashedPassword, _ := utils.HashPassword(password)
 	user := &models.User{
 		ID:        uuid.New(),
 		Email:     email,
 		AvatarURL: avatar,
-		Password:  password,
+		Password:  hashedPassword,
 	}
 	if err := r.DB.Create(user).Error; err != nil {
 		return nil, err

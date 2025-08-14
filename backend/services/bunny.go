@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 var (
@@ -30,7 +31,7 @@ func UploadPhotoToBunnyStorage(file io.Reader, path string) (string, error) {
 	}
 	req.Header.Set("AccessKey", bunnyStorageAPIKey)
 	req.Header.Set("Content-Type", "application/octet-stream")
-	client := &http.Client{}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -54,7 +55,8 @@ func UploadVideoToBunnyStream(file io.Reader, filename string) (string, string, 
 	}
 	req.Header.Set("AccessKey", bunnyStreamAPIKey)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", "", err
 	}
@@ -80,7 +82,8 @@ func UploadVideoToBunnyStream(file io.Reader, filename string) (string, string, 
 	}
 	uploadReq.Header.Set("AccessKey", bunnyStreamAPIKey)
 	uploadReq.Header.Set("Content-Type", "application/octet-stream")
-	uploadResp, err := http.DefaultClient.Do(uploadReq)
+	uploadClient := &http.Client{Timeout: 0}
+	uploadResp, err := uploadClient.Do(uploadReq)
 	if err != nil {
 		return "", "", err
 	}

@@ -51,9 +51,13 @@ func (s *VideoService) UploadVideo(title string, file *multipart.FileHeader) (*m
 	req, _ := http.NewRequest("POST", bunnyAPI+"/library/videos", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("AccessKey", bunnyKey)
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode > 299 {
 		s.Logger.Error("Bunny create video failed", zap.Error(err))
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 		return nil, fmt.Errorf("Bunny create video failed: %w", err)
 	}
 	var createResp struct {
@@ -71,9 +75,13 @@ func (s *VideoService) UploadVideo(title string, file *multipart.FileHeader) (*m
 	uploadReq, _ := http.NewRequest("PUT", uploadURL, src)
 	uploadReq.Header.Set("AccessKey", bunnyKey)
 	uploadReq.Header.Set("Content-Type", "application/octet-stream")
-	uploadResp, err := http.DefaultClient.Do(uploadReq)
+	uploadClient := &http.Client{Timeout: 10 * time.Minute}
+	uploadResp, err := uploadClient.Do(uploadReq)
 	if err != nil || uploadResp.StatusCode > 299 {
 		s.Logger.Error("Bunny video upload failed", zap.Error(err))
+		if uploadResp != nil {
+			defer uploadResp.Body.Close()
+		}
 		return nil, fmt.Errorf("Bunny video upload failed: %w", err)
 	}
 	uploadResp.Body.Close()
@@ -117,10 +125,16 @@ func (s *VideoService) DeleteVideo(id uuid.UUID) error {
 	deleteURL := fmt.Sprintf("%s/library/videos/%s", bunnyAPI, video.BunnyVideoID)
 	req, _ := http.NewRequest("DELETE", deleteURL, nil)
 	req.Header.Set("AccessKey", bunnyKey)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil || resp.StatusCode > 299 {
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
 		s.Logger.Error("Bunny delete video failed", zap.Error(err))
 		return fmt.Errorf("Bunny delete video failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode > 299 {
+		s.Logger.Error("Bunny delete video failed", zap.Error(fmt.Errorf("status: %s", resp.Status)))
+		return fmt.Errorf("Bunny delete video failed: %s", resp.Status)
 	}
 	if err := s.DB.Delete(&video).Error; err != nil {
 		s.Logger.Error("DB delete failed", zap.Error(err))

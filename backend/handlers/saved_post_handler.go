@@ -102,10 +102,23 @@ func GetMySavedVideos(c *gin.Context) {
 
 // GET /users/:id/saved-videos (for admin or self)
 func GetSavedVideosByUserID(c *gin.Context) {
+	// Require authenticated user
+	val, exists := c.Get("user")
+	if !exists || val == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	currentUser := val.(*models.User)
+
 	userIDStr := c.Param("id")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+	// Allow only admin or self
+	if !currentUser.IsAdmin && currentUser.ID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 	getSavedVideosForUser(c, userID)
