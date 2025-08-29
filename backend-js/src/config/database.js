@@ -1,5 +1,36 @@
 const { Sequelize } = require('sequelize');
 const logger = require('../utils/logger');
+const fs = require('fs');
+
+// Helper function to get SSL configuration
+const getSSLConfig = () => {
+  if (process.env.NODE_ENV !== 'production') {
+    return false;
+  }
+  
+  // For production, properly configure SSL
+  const sslConfig = {
+    require: true,
+    rejectUnauthorized: true,
+  };
+  
+  // If using a custom CA certificate (e.g., for managed databases)
+  if (process.env.DB_SSL_CA_PATH) {
+    try {
+      sslConfig.ca = fs.readFileSync(process.env.DB_SSL_CA_PATH, 'utf8');
+    } catch (error) {
+      logger.warn('Could not read SSL CA certificate, using default trust store');
+    }
+  }
+  
+  // Allow override for development/testing (but log a security warning)
+  if (process.env.DB_SSL_REJECT_UNAUTHORIZED === 'false') {
+    logger.warn('⚠️  WARNING: SSL certificate validation is disabled. This is insecure!');
+    sslConfig.rejectUnauthorized = false;
+  }
+  
+  return sslConfig;
+};
 
 const config = {
   development: {
@@ -10,7 +41,7 @@ const config = {
     port: process.env.DB_PORT,
     dialect: 'postgres',
     logging: (msg) => logger.debug(msg),
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: false, // SSL disabled for local development
     pool: {
       max: 10,
       min: 0,
@@ -36,7 +67,7 @@ const config = {
     port: process.env.DB_PORT,
     dialect: 'postgres',
     logging: false,
-    ssl: { rejectUnauthorized: false },
+    ssl: getSSLConfig(),
     pool: {
       max: 20,
       min: 5,

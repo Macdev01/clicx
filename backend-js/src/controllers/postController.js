@@ -1,4 +1,4 @@
-const { Post, User, ModelProfile, Media, Comment, Like, SavedPost, Purchase } = require('../models');
+const { Post, User, ModelProfile, Media, Comment, Like, SavedPost, Purchase, sequelize } = require('../models');
 const logger = require('../utils/logger');
 const { ApiError } = require('../utils/errors');
 const { validatePagination } = require('../middleware/validation');
@@ -287,38 +287,56 @@ class PostController {
     try {
       const { id } = req.params;
       const userId = req.user.id;
-
-      const post = await Post.findByPk(id);
-      if (!post) {
-        throw new ApiError('Post not found', 404);
-      }
-
-      const existingLike = await Like.findOne({
-        where: { userId, postId: id }
-      });
-
-      if (existingLike) {
-        // Unlike
-        await existingLike.destroy();
-        await post.decrement('likesCount');
+      
+      // Use transaction to prevent race conditions
+      const t = await sequelize.transaction();
+      
+      try {
+        const post = await Post.findByPk(id, {
+          lock: t.LOCK.UPDATE,
+          transaction: t
+        });
         
-        logger.info(`Post unliked: ${id} by user: ${userId}`);
+        if (!post) {
+          await t.rollback();
+          throw new ApiError('Post not found', 404);
+        }
+
+        const existingLike = await Like.findOne({
+          where: { userId, postId: id },
+          transaction: t
+        });
+
+        let liked;
+        let newLikesCount;
+
+        if (existingLike) {
+          // Unlike
+          await existingLike.destroy({ transaction: t });
+          await post.decrement('likesCount', { transaction: t });
+          liked = false;
+          newLikesCount = post.likesCount - 1;
+          
+          logger.info(`Post unliked: ${id} by user: ${userId}`);
+        } else {
+          // Like
+          await Like.create({ userId, postId: id }, { transaction: t });
+          await post.increment('likesCount', { transaction: t });
+          liked = true;
+          newLikesCount = post.likesCount + 1;
+          
+          logger.info(`Post liked: ${id} by user: ${userId}`);
+        }
+        
+        await t.commit();
         
         res.json({
           success: true,
-          data: { liked: false, likesCount: post.likesCount - 1 }
+          data: { liked, likesCount: newLikesCount }
         });
-      } else {
-        // Like
-        await Like.create({ userId, postId: id });
-        await post.increment('likesCount');
-        
-        logger.info(`Post liked: ${id} by user: ${userId}`);
-        
-        res.json({
-          success: true,
-          data: { liked: true, likesCount: post.likesCount + 1 }
-        });
+      } catch (error) {
+        await t.rollback();
+        throw error;
       }
     } catch (error) {
       next(error);

@@ -1,6 +1,6 @@
 const admin = require('firebase-admin');
 const logger = require('../utils/logger');
-const { User } = require('../models');
+const { User, sequelize } = require('../models');
 const { generateSecurePassword } = require('../utils/crypto');
 
 // Initialize Firebase Admin
@@ -52,18 +52,35 @@ const getOrCreateUser = async (decodedToken, referralCode = null) => {
 
       // Handle referral if provided
       if (referralCode) {
-        const referrer = await User.findOne({ where: { referralCode } });
-        if (referrer) {
-          // Create referral record
-          const { Referral } = require('../models');
-          await Referral.create({
-            userId: referrer.id,
-            referralCode,
-            invitedUserId: user.id,
+        // Use transaction to prevent race conditions
+        const t = await sequelize.transaction();
+        try {
+          const referrer = await User.findOne({ 
+            where: { referralCode },
+            lock: t.LOCK.UPDATE,
+            transaction: t 
           });
           
-          // Update referrer balance
-          await referrer.increment('balance', { by: 1 });
+          if (referrer) {
+            // Create referral record
+            const { Referral } = require('../models');
+            await Referral.create({
+              userId: referrer.id,
+              referralCode,
+              invitedUserId: user.id,
+            }, { transaction: t });
+            
+            // Update referrer balance atomically
+            await referrer.increment('balance', { by: 1, transaction: t });
+            
+            await t.commit();
+          } else {
+            await t.rollback();
+          }
+        } catch (error) {
+          await t.rollback();
+          logger.error('Error handling referral:', error);
+          // Don't throw - we don't want to fail user creation due to referral issues
         }
       }
 
