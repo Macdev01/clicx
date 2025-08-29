@@ -1,4 +1,5 @@
 const { ModelProfile, User, Post, Media, Follow } = require('../models');
+const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const { ApiError } = require('../utils/errors');
 
@@ -17,8 +18,10 @@ class ModelController {
 
       const whereClause = {};
       if (search) {
+        // Sanitize search input to prevent SQL injection
+        const sanitizedSearch = search.replace(/[%_]/g, '\\$&'); // Escape special SQL characters
         whereClause.name = {
-          [require('sequelize').Op.iLike]: `%${search}%`
+          [Op.iLike]: `%${sanitizedSearch}%`
         };
       }
       if (category) whereClause.category = category;
